@@ -1,0 +1,17 @@
+name = "account-manager-worker"
+main = "src/index.js"
+compatibility_date = "2024-01-16"
+
+# D1 数据库绑定
+# 部署前需要先创建数据库并替换 database_id
+[[d1_databases]]
+binding = "DB"
+database_name = "account-manager-db"
+database_id = "YOUR_DATABASE_ID_HERE"
+
+# 本地开发配置
+[env.dev]
+[[env.dev.d1_databases]]
+binding = "DB"
+database_name = "account-manager-db"
+database_id = "YOUR_DATABASE_ID_HERE"

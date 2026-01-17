@@ -1,0 +1,2 @@
+/* /api/* 代理到 Worker */
+/api/*  https://your-worker.workers.dev/api/:splat  200

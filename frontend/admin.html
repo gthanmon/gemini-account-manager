@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>管理员后台 - Gemini账号管理</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        .admin-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: var(--spacing-xl);
+        }
+
+        .admin-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: var(--spacing-xl);
+            padding-bottom: var(--spacing-lg);
+            border-bottom: 1px solid var(--border);
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-md);
+        }
+
+        .logout-btn {
+            padding: 8px 16px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-md);
+            color: var(--text-primary);
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: var(--transition);
+        }
+
+        .logout-btn:hover {
+            background: var(--border);
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: var(--spacing-lg);
+            margin-bottom: var(--spacing-xl);
+        }
+
+        .stat-card {
+            background: var(--bg-primary);
+            padding: var(--spacing-lg);
+            border-radius: var(--radius-lg);
+            border: 1px solid var(--border);
+            text-align: center;
+        }
+
+        .stat-card h3 {
+            font-size: 0.9rem;
+            color: var(--text-muted);
+            margin-bottom: var(--spacing-sm);
+        }
+
+        .stat-card .value {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: var(--primary);
+        }
+
+        .users-table-container {
+            background: var(--bg-primary);
+            border-radius: var(--radius-lg);
+            border: 1px solid var(--border);
+            overflow: hidden;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.95rem;
+        }
+
+        th {
+            background: var(--bg-secondary);
+            padding: var(--spacing-md) var(--spacing-lg);
+            text-align: left;
+            font-weight: 600;
+            color: var(--text-secondary);
+            border-bottom: 1px solid var(--border);
+            white-space: nowrap;
+        }
+
+        td {
+            padding: var(--spacing-md) var(--spacing-lg);
+            border-bottom: 1px solid var(--border);
+            color: var(--text-primary);
+            vertical-align: middle;
+        }
+
+        tbody tr:last-child td {
+            border-bottom: none;
+        }
+
+        tbody tr:hover {
+            background: rgba(255, 255, 255, 0.02);
+        }
+
+        .badge-admin {
+            background: rgba(99, 102, 241, 0.1);
+            color: #6366f1;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            font-weight: 500;
+        }
+
+        .badge-user {
+            background: rgba(16, 185, 129, 0.1);
+            color: #10b981;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            font-weight: 500;
+        }
+
+        .stat-value {
+            font-weight: 600;
+            color: var(--primary);
+        }
+
+        .stat-revenue {
+            color: #10b981;
+            font-weight: 600;
+        }
+
+        /* 自定义确认对话框 */
+        .confirm-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.7);
+            align-items: center;
+            justify-content: center;
+            z-index: 10000;
+        }
+
+        .confirm-overlay.show {
+            display: flex;
+        }
+
+        .confirm-dialog {
+            background: var(--bg-primary);
+            border-radius: var(--radius-lg);
+            padding: var(--spacing-xl);
+            max-width: 400px;
+            width: 90%;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+        }
+
+        .confirm-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin-bottom: var(--spacing-md);
+            color: #ef4444;
+        }
+
+        .confirm-message {
+            color: var(--text-secondary);
+            margin-bottom: var(--spacing-xl);
+            line-height: 1.6;
+            white-space: pre-wrap;
+        }
+
+        .confirm-buttons {
+            display: flex;
+            gap: var(--spacing-md);
+            justify-content: flex-end;
+        }
+
+        .confirm-btn {
+            padding: var(--spacing-sm) var(--spacing-lg);
+            border-radius: var(--radius-md);
+            font-weight: 500;
+            cursor: pointer;
+            border: none;
+            transition: var(--transition);
+        }
+
+        .confirm-btn-cancel {
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+        }
+
+        .confirm-btn-cancel:hover {
+            background: var(--border);
+        }
+
+        .confirm-btn-confirm {
+            background: #ef4444;
+            color: white;
+        }
+
+        .confirm-btn-confirm:hover {
+            background: #dc2626;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="admin-container">
+        <header class="admin-header">
+            <h1>Gemini账号管理 - 管理员后台</h1>
+            <div class="user-info">
+                <span id="current-user">加载中...</span>
+                <button id="logout-btn" class="logout-btn">退出</button>
+            </div>
+        </header>
+
+        <main>
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <h3>总用户数</h3>
+                    <div id="total-users" class="value">0</div>
+                </div>
+                <div class="stat-card">
+                    <h3>总账号数</h3>
+                    <div id="total-accounts" class="value">0</div>
+                </div>
+                <div class="stat-card">
+                    <h3>总收入</h3>
+                    <div id="total-revenue" class="value">¥0.00</div>
+                </div>
+            </div>
+
+            <div class="users-table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>用户名</th>
+                            <th>角色</th>
+                            <th>注册时间</th>
+                            <th>总账号</th>
+                            <th>个人号(存/售)</th>
+                            <th>家庭组</th>
+                            <th>总收入</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody id="users-table-body">
+                        <tr>
+                            <td colspan="9" style="text-align: center;">加载中...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </main>
+    </div>
+
+    <!-- 自定义确认对话框 -->
+    <div class="confirm-overlay" id="confirmOverlay">
+        <div class="confirm-dialog">
+            <div class="confirm-title">⚠️ 确认删除</div>
+            <div class="confirm-message" id="confirmMessage"></div>
+            <div class="confirm-buttons">
+                <button class="confirm-btn confirm-btn-cancel" id="confirmCancel">取消</button>
+                <button class="confirm-btn confirm-btn-confirm" id="confirmOk">确认删除</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE_URL = 'https://your-worker.your-subdomain.workers.dev';
+        const token = localStorage.getItem('token');
+        const user = JSON.parse(localStorage.getItem('user') || '{}');
+
+        // 认证检查
+        if (!token || user.role !== 'admin') {
+            window.location.href = 'login.html';
+        }
+
+        document.getElementById('current-user').textContent = user.username;
+
+        // 退出登录
+        document.getElementById('logout-btn').addEventListener('click', () => {
+            localStorage.removeItem('token');
+            localStorage.removeItem('user');
+            window.location.href = 'login.html';
+        });
+
+        // 自定义确认对话框函数
+        function showConfirm(message) {
+            return new Promise((resolve) => {
+                const overlay = document.getElementById('confirmOverlay');
+                const messageEl = document.getElementById('confirmMessage');
+                const cancelBtn = document.getElementById('confirmCancel');
+                const okBtn = document.getElementById('confirmOk');
+
+                messageEl.textContent = message;
+                overlay.classList.add('show');
+
+                function cleanup() {
+                    overlay.classList.remove('show');
+                    cancelBtn.removeEventListener('click', onCancel);
+                    okBtn.removeEventListener('click', onOk);
+                }
+
+                function onCancel() {
+                    cleanup();
+                    resolve(false);
+                }
+
+                function onOk() {
+                    cleanup();
+                    resolve(true);
+                }
+
+                cancelBtn.addEventListener('click', onCancel);
+                okBtn.addEventListener('click', onOk);
+            });
+        }
+
+        // 删除用户
+        window.deleteUser = async function (userId, username) {
+            const confirmed = await showConfirm(`确定要删除用户 "${username}" 吗?\n\n此操作将同时删除该用户的所有账号数据,且不可恢复!`);
+
+            if (!confirmed) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/admin/users/${userId}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    console.log('✅ ' + data.message);
+                    loadUsers(); // 重新加载列表
+                } else {
+                    console.error('❌ 删除失败:', data.error);
+                }
+            } catch (error) {
+                console.error('❌ 网络错误:', error.message);
+            }
+        }
+
+        // 加载用户数据
+        async function loadUsers() {
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/admin/users`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                if (response.status === 401 || response.status === 403) {
+                    localStorage.removeItem('token');
+                    localStorage.removeItem('user');
+                    window.location.href = 'login.html';
+                    return;
+                }
+
+                const data = await response.json();
+                if (data.success) {
+                    renderStats(data.users);
+                    renderTable(data.users);
+                }
+            } catch (error) {
+                console.error('加载用户数据失败:', error);
+            }
+        }
+
+        function renderStats(users) {
+            const totalUsers = users.length;
+            const totalAccounts = users.reduce((sum, u) => sum + (u.stats.total || 0), 0);
+            const totalRevenue = users.reduce((sum, u) => sum + (parseFloat(u.stats.revenue) || 0), 0);
+
+            document.getElementById('total-users').textContent = totalUsers;
+            document.getElementById('total-accounts').textContent = totalAccounts;
+            document.getElementById('total-revenue').textContent = `¥${totalRevenue.toFixed(2)}`;
+        }
+
+        function renderTable(users) {
+            const tbody = document.getElementById('users-table-body');
+            tbody.innerHTML = '';
+
+            users.forEach(user => {
+                const tr = document.createElement('tr');
+                const stats = user.stats || {};
+
+                // 管理员账号不显示删除按钮
+                const deleteBtn = user.role === 'admin'
+                    ? '<span style="color: var(--text-muted); font-size: 0.8rem;">-</span>'
+                    : `<button class="delete-user-btn" data-user-id="${user.id}" data-username="${user.username}" style="padding: 4px 12px; background: rgba(239, 68, 68, 0.1); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.3); border-radius: 4px; cursor: pointer; font-size: 0.85rem;">删除</button>`;
+
+                tr.innerHTML = `
+                    <td style="font-weight: 500; color: var(--text-muted);">#${user.id}</td>
+                    <td style="font-weight: 500;">${user.username}</td>
+                    <td><span class="badge-${user.role}">${user.role === 'admin' ? '管理员' : '用户'}</span></td>
+                    <td style="color: var(--text-muted); font-size: 0.9rem;">${new Date(user.created_at).toLocaleString()}</td>
+                    <td class="stat-value">${stats.total}</td>
+                    <td class="stat-value">
+                        ${stats.personalActive} / ${stats.personalSold}
+                    </td>
+                    <td class="stat-value">${stats.familyCount}</td>
+                    <td class="stat-revenue">¥${stats.revenue}</td>
+                    <td>${deleteBtn}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+
+            // 为所有删除按钮添加事件监听器
+            document.querySelectorAll('.delete-user-btn').forEach(btn => {
+                btn.addEventListener('click', function () {
+                    const userId = parseInt(this.dataset.userId);
+                    const username = this.dataset.username;
+                    window.deleteUser(userId, username);
+                });
+            });
+        }
+
+        // 初始化
+        loadUsers();
+    </script>
+</body>
+
+</html>
