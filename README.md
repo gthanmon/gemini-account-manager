@@ -48,8 +48,16 @@ wrangler deploy
 部署成功后获取 Worker URL (例如 `https://account-manager-worker.xxx.workers.dev`)。
 
 ### 6. 配置前端
-1. 编辑 `frontend/app.js`，修改 `API_BASE_URL` 为你的 Worker URL。
-2. 编辑 `frontend/login.html`, `frontend/register.html`, `frontend/admin.html`，同样修改 `API_BASE_URL`。
+编辑 `frontend/config.js`：
+```javascript
+// 环境开关: true=本地开发, false=远程生产
+const USE_LOCAL = false;
+
+// 地址配置
+const LOCAL_URL = 'http://localhost:8787';
+const REMOTE_URL = 'https://your-worker.xxx.workers.dev'; // 替换为你的 Worker URL
+```
+**只需修改此文件，切换 `USE_LOCAL` 即可在本地和远程环境间切换。**
 
 ### 7. 部署前端 Pages
 ```bash
@@ -75,6 +83,7 @@ wrangler pages deploy . --project-name=account-manager
 ```
 .
 ├── frontend/             # 静态前端页面
+│   ├── config.js         # ⭐ API配置（只需修改此文件）
 │   ├── index.html        # 主面板
 │   ├── admin.html        # 管理员后台
 │   ├── app.js            # 前端逻辑

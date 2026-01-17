@@ -2,9 +2,7 @@
  * Account Manager Pro - 前端主逻辑
  */
 
-// 配置 - 请替换为你的 Worker URL
-const API_BASE_URL = 'https://your-worker.your-subdomain.workers.dev'; // 替换为你的 Worker URL
-// const API_BASE_URL = 'http://localhost:8787'; // 本地开发环境
+// API_BASE_URL 在 config.js 中定义，只需修改一次
 
 // 全局状态
 let currentSlotEdit = null;
