@@ -120,6 +120,12 @@ export default {
                 return addCORSHeaders(response);
             }
 
+            // 获取到期通知
+            if (path === '/api/notifications/expired' && request.method === 'GET') {
+                const response = await handleExpiredNotifications(env, currentUser);
+                return addCORSHeaders(response);
+            }
+
             // 404
             const notFoundResponse = new Response(JSON.stringify({ error: '接口不存在' }), {
                 status: 404,
@@ -240,6 +246,78 @@ async function handleStats(env, currentUser) {
             totalRevenue: totalRevenue.toFixed(2),
             slotRevenue: slotRevenue.toFixed(2),
             personalRevenue: personalRevenue.toFixed(2)
+        }), {
+            status: 200,
+            headers: { 'Content-Type': 'application/json' }
+        });
+
+    } catch (error) {
+        return new Response(JSON.stringify({ error: error.message }), {
+            status: 500,
+            headers: { 'Content-Type': 'application/json' }
+        });
+    }
+}
+
+// 获取到期通知
+async function handleExpiredNotifications(env, currentUser) {
+    try {
+        // 查询家庭组账号
+        const familyQuery = currentUser.role === 'admin'
+            ? "SELECT id, email, slots FROM accounts WHERE type = 'FAMILY' AND status = 'ACTIVE'"
+            : "SELECT id, email, slots FROM accounts WHERE type = 'FAMILY' AND status = 'ACTIVE' AND user_id = ?";
+
+        const familyAccounts = currentUser.role === 'admin'
+            ? await env.DB.prepare(familyQuery).all()
+            : await env.DB.prepare(familyQuery).bind(currentUser.id).all();
+
+        const now = new Date();
+        // 提前1天提醒阈值
+        const soonThreshold = new Date(now.getTime() + 1 * 24 * 60 * 60 * 1000);
+        const notifications = [];
+
+        familyAccounts.results.forEach(account => {
+            const slots = JSON.parse(account.slots || '[]');
+            slots.forEach((slot, index) => {
+                if (slot !== null && slot.expiresAt) {
+                    const expiresAt = new Date(slot.expiresAt);
+
+                    // 已到期（过期时间 <= 当前时间）
+                    if (expiresAt <= now) {
+                        notifications.push({
+                            accountId: account.id,
+                            accountEmail: account.email,
+                            slotIndex: index,
+                            buyer: slot.buyer,
+                            expireDays: slot.expireDays,
+                            expiresAt: slot.expiresAt,
+                            assignedAt: slot.assignedAt,
+                            status: 'expired',  // 已到期
+                            statusText: '已到期'
+                        });
+                    }
+                    // 即将到期（1天内到期但还没到期）
+                    else if (expiresAt <= soonThreshold) {
+                        notifications.push({
+                            accountId: account.id,
+                            accountEmail: account.email,
+                            slotIndex: index,
+                            buyer: slot.buyer,
+                            expireDays: slot.expireDays,
+                            expiresAt: slot.expiresAt,
+                            assignedAt: slot.assignedAt,
+                            status: 'expiring',  // 即将到期
+                            statusText: '即将到期'
+                        });
+                    }
+                }
+            });
+        });
+
+        return new Response(JSON.stringify({
+            success: true,
+            count: notifications.length,
+            notifications: notifications
         }), {
             status: 200,
             headers: { 'Content-Type': 'application/json' }

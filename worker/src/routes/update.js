@@ -123,7 +123,7 @@ async function convertToPersonal(env, accountId) {
 
 // 更新车位
 async function updateSlot(env, accountId, data) {
-    const { slotIndex, slotAction, buyer, order, price } = data;
+    const { slotIndex, slotAction, buyer, order, price, expireDays } = data;
 
     // 获取当前账号
     const account = await env.DB.prepare(
@@ -148,11 +148,22 @@ async function updateSlot(env, accountId, data) {
 
     // 执行操作
     if (slotAction === 'assign') {
+        // 计算到期时间（如果填写了天数，包括0天表示立即过期）
+        let expiresAt = null;
+        const days = parseInt(expireDays);
+        if (expireDays !== '' && expireDays !== null && expireDays !== undefined && !isNaN(days) && days >= 0) {
+            const expireDate = new Date();
+            expireDate.setDate(expireDate.getDate() + days);
+            expiresAt = expireDate.toISOString();
+        }
+
         slots[slotIndex] = {
             buyer,
             order: order || null,
             price: price || null,
-            assignedAt: new Date().toISOString()
+            assignedAt: new Date().toISOString(),
+            expireDays: (expireDays !== '' && expireDays !== null && expireDays !== undefined && !isNaN(days)) ? days : null,
+            expiresAt: expiresAt
         };
     } else if (slotAction === 'release') {
         slots[slotIndex] = null;

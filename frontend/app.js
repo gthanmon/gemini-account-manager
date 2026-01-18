@@ -63,6 +63,7 @@ document.addEventListener('DOMContentLoaded', () => {
     initList();
     initBatchControls();
     loadStats();
+    initNotifications(); // 初始化到期通知检查
 
     // 默认显示账号列表视图
     document.getElementById('list-view').classList.add('active');
@@ -495,6 +496,9 @@ function createSlotsHTML(account) {
 
     let slotsHTML = '<div class="slots-container"><div class="slots-title">🎫 车位管理 (点击操作)</div><div class="slots-grid">';
 
+    const now = new Date();
+    const soonThreshold = new Date(now.getTime() + 1 * 24 * 60 * 60 * 1000); // 1天后
+
     slots.forEach((slot, index) => {
         if (slot === null) {
             slotsHTML += `
@@ -504,9 +508,26 @@ function createSlotsHTML(account) {
         </div>
       `;
         } else {
+            // 检查到期状态
+            let slotClass = 'occupied';
+            let slotIcon = '✅';
+
+            if (slot.expiresAt) {
+                const expiresAt = new Date(slot.expiresAt);
+                if (expiresAt <= now) {
+                    // 已到期 - 红色
+                    slotClass = 'occupied expired';
+                    slotIcon = '🔴';
+                } else if (expiresAt <= soonThreshold) {
+                    // 即将到期 - 黄色
+                    slotClass = 'occupied expiring';
+                    slotIcon = '🟡';
+                }
+            }
+
             slotsHTML += `
-        <div class="slot occupied" onclick="viewSlotDetails(${account.id}, ${index})">
-          <div class="slot-icon">✅</div>
+        <div class="slot ${slotClass}" onclick="viewSlotDetails(${account.id}, ${index})">
+          <div class="slot-icon">${slotIcon}</div>
           <div class="slot-label">${slot.buyer || '已用'}</div>
         </div>
       `;
@@ -539,14 +560,20 @@ function viewSlotDetails(accountId, slotIndex) {
     const buyerInput = document.getElementById('buyer-name');
     const orderInput = document.getElementById('order-number');
     const priceInput = document.getElementById('slot-price');
+    const expireDaysInput = document.getElementById('expire-days');
 
     buyerInput.value = slot.buyer || '';
     orderInput.value = slot.order || '';
     priceInput.value = slot.price || '';
+    expireDaysInput.value = slot.expireDays || '';
 
     buyerInput.disabled = true;
     orderInput.disabled = true;
     priceInput.disabled = true;
+    expireDaysInput.disabled = true;
+
+    // 隐藏服务期限输入框（查看模式）
+    document.getElementById('expire-days-group').style.display = 'none';
 
     // 显示上车时间
     const timeGroup = document.getElementById('slot-time-group');
@@ -556,6 +583,20 @@ function viewSlotDetails(accountId, slotIndex) {
         timeGroup.style.display = 'block';
     } else {
         timeGroup.style.display = 'none';
+    }
+
+    // 显示到期时间
+    const expireInfoGroup = document.getElementById('slot-expire-info-group');
+    const expireTimeDisplay = document.getElementById('slot-expire-time');
+    if (slot.expiresAt) {
+        const expiresAt = new Date(slot.expiresAt);
+        const now = new Date();
+        const isExpired = expiresAt <= now;
+        expireTimeDisplay.textContent = expiresAt.toLocaleString() + (isExpired ? ' (已到期!)' : '');
+        expireTimeDisplay.style.color = isExpired ? '#ef4444' : '#f59e0b';
+        expireInfoGroup.style.display = 'block';
+    } else {
+        expireInfoGroup.style.display = 'none';
     }
 
     // 显示下车按钮，隐藏确认按钮
@@ -573,17 +614,23 @@ function assignSlot(accountId, slotIndex) {
     const buyerInput = document.getElementById('buyer-name');
     const orderInput = document.getElementById('order-number');
     const priceInput = document.getElementById('slot-price');
+    const expireDaysInput = document.getElementById('expire-days');
 
     buyerInput.value = '';
     orderInput.value = '';
     priceInput.value = '';
+    expireDaysInput.value = '';
 
     buyerInput.disabled = false;
     orderInput.disabled = false;
     priceInput.disabled = false;
+    expireDaysInput.disabled = false;
 
-    // 隐藏上车时间和下车按钮
+    // 显示服务期限输入框（分配模式）
+    document.getElementById('expire-days-group').style.display = 'block';
+    // 隐藏上车时间、到期时间和下车按钮
     document.getElementById('slot-time-group').style.display = 'none';
+    document.getElementById('slot-expire-info-group').style.display = 'none';
     document.getElementById('slot-confirm-btn').style.display = 'inline-block';
     document.getElementById('slot-release-btn').style.display = 'none';
 
@@ -617,17 +664,18 @@ async function confirmSlotAction() {
     const buyer = document.getElementById('buyer-name').value.trim();
     const order = document.getElementById('order-number').value.trim();
     const price = document.getElementById('slot-price').value.trim();
+    const expireDays = document.getElementById('expire-days').value.trim();
 
     if (!buyer && currentSlotEdit.action === 'assign') {
         showToast('请输入买家信息', 'error');
         return;
     }
 
-    await updateSlot(currentSlotEdit.accountId, currentSlotEdit.slotIndex, currentSlotEdit.action, buyer, order, price);
+    await updateSlot(currentSlotEdit.accountId, currentSlotEdit.slotIndex, currentSlotEdit.action, buyer, order, price, expireDays);
     closeSlotModal();
 }
 
-async function updateSlot(accountId, slotIndex, action, buyer = '', order = '', price = '') {
+async function updateSlot(accountId, slotIndex, action, buyer = '', order = '', price = '', expireDays = '') {
     try {
         const response = await fetch(`${API_BASE_URL}/api/accounts/${accountId}`, {
             method: 'PATCH',
@@ -638,7 +686,8 @@ async function updateSlot(accountId, slotIndex, action, buyer = '', order = '', 
                 slotAction: action,
                 buyer,
                 order,
-                price
+                price,
+                expireDays
             })
         });
 
@@ -648,6 +697,7 @@ async function updateSlot(accountId, slotIndex, action, buyer = '', order = '', 
             showToast(action === 'assign' ? '车位分配成功' : '车位释放成功', 'success');
             loadAccounts();
             loadStats();
+            checkExpiredNotifications(); // 刷新通知
         } else {
             showToast('操作失败: ' + data.error, 'error');
         }
@@ -1164,4 +1214,102 @@ function toggleAccountSelection(id, checked) {
     const allChecked = allCheckboxes.length > 0 && Array.from(allCheckboxes).every(cb => cb.checked);
     const selectAllCheckbox = document.getElementById('select-all-checkbox');
     if (selectAllCheckbox) selectAllCheckbox.checked = allChecked;
+}
+
+// ===== 到期通知功能 =====
+let expiredNotifications = [];
+
+function initNotifications() {
+    // 初始检查
+    checkExpiredNotifications();
+
+    // 每5分钟检查一次
+    setInterval(checkExpiredNotifications, 5 * 60 * 1000);
+}
+
+async function checkExpiredNotifications() {
+    try {
+        const response = await fetch(`${API_BASE_URL}/api/notifications/expired`, {
+            headers: getAuthHeaders()
+        });
+
+        if (response.status === 401) {
+            return; // 未登录,不处理
+        }
+
+        const data = await response.json();
+
+        if (data.success) {
+            expiredNotifications = data.notifications || [];
+            updateNotificationBadge(data.count);
+        }
+    } catch (error) {
+        console.error('检查到期通知失败:', error);
+    }
+}
+
+function updateNotificationBadge(count) {
+    const badge = document.getElementById('notification-badge');
+    if (!badge) return;
+
+    if (count > 0) {
+        badge.textContent = count > 99 ? '99+' : count;
+        badge.classList.add('show');
+    } else {
+        badge.classList.remove('show');
+    }
+}
+
+function openNotificationModal() {
+    const listContainer = document.getElementById('notification-list');
+    const emptyState = document.getElementById('notification-empty');
+
+    if (expiredNotifications.length === 0) {
+        listContainer.style.display = 'none';
+        emptyState.style.display = 'block';
+    } else {
+        listContainer.style.display = 'block';
+        emptyState.style.display = 'none';
+
+        let html = '';
+        expiredNotifications.forEach(notification => {
+            const expiresAt = new Date(notification.expiresAt);
+            const assignedAt = new Date(notification.assignedAt);
+            const isExpired = notification.status === 'expired';
+            const statusClass = isExpired ? 'expired' : 'expiring';
+            const statusText = notification.statusText || (isExpired ? '已到期' : '即将到期');
+            const statusIcon = isExpired ? '🔴' : '🟡';
+
+            html += `
+                <div class="notification-item ${statusClass}">
+                    <div class="notification-item-header">
+                        <span class="notification-item-account">📧 ${notification.accountEmail}</span>
+                        <span class="notification-status-badge ${statusClass}">${statusIcon} ${statusText}</span>
+                    </div>
+                    <div class="notification-item-slot">🚗 车位 ${notification.slotIndex + 1}</div>
+                    <div class="notification-item-buyer">👤 买家: ${notification.buyer}</div>
+                    <div class="notification-item-time">
+                        ⏰ 到期时间: ${expiresAt.toLocaleString()}
+                        ${notification.expireDays ? ` (${notification.expireDays}天)` : ''}<br>
+                        📅 上车时间: ${assignedAt.toLocaleString()}
+                    </div>
+                </div>
+            `;
+        });
+        listContainer.innerHTML = html;
+    }
+
+    document.getElementById('notification-modal').classList.add('active');
+}
+
+function closeNotificationModal() {
+    document.getElementById('notification-modal').classList.remove('active');
+}
+
+// 标记所有通知为已读（清除角标）
+function markAllNotificationsRead() {
+    // 清除角标显示
+    updateNotificationBadge(0);
+    showToast('✓ 已全部标记为已读', 'success');
+    closeNotificationModal();
 }

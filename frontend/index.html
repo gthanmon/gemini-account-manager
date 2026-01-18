@@ -17,6 +17,10 @@
             <nav class="nav">
                 <button class="nav-btn active" data-view="list">账号列表</button>
                 <button class="nav-btn" data-view="import">导入账号</button>
+                <button class="notification-btn" id="notification-btn" onclick="openNotificationModal()">
+                    🔔
+                    <span class="notification-badge" id="notification-badge">0</span>
+                </button>
                 <button class="nav-btn" id="logout-btn"
                     style="margin-left: auto; background: rgba(239, 68, 68, 0.1); color: #ef4444;">退出登录</button>
             </nav>
@@ -222,10 +226,20 @@
                     <label for="slot-price">金额 (可选)</label>
                     <input type="text" id="slot-price" class="input" placeholder="例如: 50">
                 </div>
+                <div class="form-group" id="expire-days-group">
+                    <label for="expire-days">服务期限 (天，不填则无限)</label>
+                    <input type="number" id="expire-days" class="input" placeholder="例如: 30" min="1">
+                </div>
                 <div class="form-group" id="slot-time-group" style="display: none;">
                     <label>🚗 上车时间</label>
                     <div id="slot-assigned-time"
                         style="padding: 8px; background: rgba(59, 130, 246, 0.1); border-radius: 4px; color: #3b82f6;">
+                    </div>
+                </div>
+                <div class="form-group" id="slot-expire-info-group" style="display: none;">
+                    <label>⏰ 到期时间</label>
+                    <div id="slot-expire-time"
+                        style="padding: 8px; background: rgba(245, 158, 11, 0.1); border-radius: 4px; color: #f59e0b;">
                     </div>
                 </div>
             </div>
@@ -310,6 +324,30 @@
             <div class="modal-footer">
                 <button class="btn btn-secondary" onclick="closeCancelSoldModal()">取消</button>
                 <button class="btn btn-primary" onclick="confirmCancelSold()">确认取消售出</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 到期提醒弹窗 -->
+    <div id="notification-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>🔔 到期提醒</h3>
+                <button class="modal-close" onclick="closeNotificationModal()">✕</button>
+            </div>
+            <div class="modal-body">
+                <div id="notification-list" style="max-height: 400px; overflow-y: auto;">
+                    <!-- 通知列表由 JS 动态生成 -->
+                </div>
+                <div id="notification-empty" style="text-align: center; padding: 2rem; color: var(--text-muted);">
+                    <div style="font-size: 3rem; margin-bottom: 1rem;">🎉</div>
+                    <div>暂无到期提醒</div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="markAllNotificationsRead()" id="mark-read-btn"
+                    style="margin-right: auto;">✓ 全部已读</button>
+                <button class="btn btn-secondary" onclick="closeNotificationModal()">关闭</button>
             </div>
         </div>
     </div>

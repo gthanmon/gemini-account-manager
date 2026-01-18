@@ -627,6 +627,34 @@ body {
     font-weight: 600;
 }
 
+/* 即将到期车位 - 黄色 */
+.slot.occupied.expiring {
+    border-color: #f59e0b;
+    background: rgba(245, 158, 11, 0.15);
+}
+
+.slot.occupied.expiring:hover {
+    background: rgba(245, 158, 11, 0.25);
+}
+
+.slot.occupied.expiring .slot-label {
+    color: #f59e0b;
+}
+
+/* 已到期车位 - 红色 */
+.slot.occupied.expired {
+    border-color: #ef4444;
+    background: rgba(239, 68, 68, 0.15);
+}
+
+.slot.occupied.expired:hover {
+    background: rgba(239, 68, 68, 0.25);
+}
+
+.slot.occupied.expired .slot-label {
+    color: #ef4444;
+}
+
 /* ===== 账号操作按钮 ===== */
 .account-actions {
     display: flex;
@@ -925,4 +953,127 @@ body {
         max-height: 90vh;
         overflow-y: auto;
     }
+}
+
+/* ===== 通知铃铛 ===== */
+.notification-btn {
+    position: relative;
+    background: transparent;
+    border: none;
+    font-size: 1.5rem;
+    cursor: pointer;
+    padding: 0.5rem 0.75rem;
+    border-radius: var(--radius-md);
+    transition: var(--transition);
+    margin-left: auto;
+    margin-right: 0.5rem;
+}
+
+.notification-btn:hover {
+    background: var(--bg-tertiary);
+}
+
+.notification-badge {
+    position: absolute;
+    top: 2px;
+    right: 2px;
+    background: var(--danger);
+    color: white;
+    font-size: 0.65rem;
+    font-weight: 700;
+    padding: 2px 5px;
+    border-radius: 10px;
+    min-width: 16px;
+    text-align: center;
+    line-height: 1.2;
+    display: none;
+}
+
+.notification-badge.show {
+    display: block;
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0% {
+        transform: scale(1);
+    }
+
+    50% {
+        transform: scale(1.1);
+    }
+
+    100% {
+        transform: scale(1);
+    }
+}
+
+/* 通知列表项 */
+.notification-item {
+    padding: var(--spacing-md);
+    background: var(--bg-tertiary);
+    border-radius: var(--radius-md);
+    margin-bottom: var(--spacing-sm);
+    border-left: 4px solid var(--warning);
+}
+
+.notification-item:last-child {
+    margin-bottom: 0;
+}
+
+.notification-item-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--spacing-sm);
+}
+
+.notification-item-account {
+    font-weight: 600;
+    color: var(--text-primary);
+    font-size: 0.9rem;
+}
+
+.notification-item-slot {
+    color: var(--warning);
+    font-size: 0.8rem;
+    font-weight: 500;
+}
+
+.notification-item-buyer {
+    color: var(--text-secondary);
+    font-size: 0.85rem;
+}
+
+.notification-item-time {
+    color: var(--text-muted);
+    font-size: 0.75rem;
+    margin-top: var(--spacing-xs);
+}
+
+/* 状态徽章 */
+.notification-status-badge {
+    padding: 2px 8px;
+    border-radius: var(--radius-sm);
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.notification-status-badge.expired {
+    background: rgba(239, 68, 68, 0.2);
+    color: #f87171;
+}
+
+.notification-status-badge.expiring {
+    background: rgba(245, 158, 11, 0.2);
+    color: #fbbf24;
+}
+
+/* 通知项不同状态的边框颜色 */
+.notification-item.expired {
+    border-left-color: #ef4444;
+}
+
+.notification-item.expiring {
+    border-left-color: #f59e0b;
 }
