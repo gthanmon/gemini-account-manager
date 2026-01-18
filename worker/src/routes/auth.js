@@ -5,6 +5,14 @@
  * - 获取当前用户信息
  */
 
+// JWT 密钥 - 从环境变量获取，如果没有则使用默认值（生产环境必须配置！）
+let JWT_SECRET = null;
+
+// 初始化密钥（需要在使用前调用）
+export function initAuth(env) {
+    JWT_SECRET = env.JWT_SECRET || 'default-secret-please-change-in-production';
+}
+
 // SHA-256 密码哈希
 async function hashPassword(password) {
     const encoder = new TextEncoder();
@@ -15,21 +23,65 @@ async function hashPassword(password) {
         .join('');
 }
 
-// 生成简单的 JWT token (base64编码的用户信息)
-function generateToken(user) {
+// HMAC-SHA256 签名
+async function signPayload(payload) {
+    const encoder = new TextEncoder();
+    const key = await crypto.subtle.importKey(
+        'raw',
+        encoder.encode(JWT_SECRET),
+        { name: 'HMAC', hash: 'SHA-256' },
+        false,
+        ['sign']
+    );
+    const signature = await crypto.subtle.sign(
+        'HMAC',
+        key,
+        encoder.encode(payload)
+    );
+    return Array.from(new Uint8Array(signature))
+        .map(b => b.toString(16).padStart(2, '0'))
+        .join('');
+}
+
+// 验证 HMAC 签名
+async function verifySignature(payload, signature) {
+    const expectedSignature = await signPayload(payload);
+    return expectedSignature === signature;
+}
+
+// 生成带签名的 Token
+async function generateToken(user) {
     const payload = {
         id: user.id,
         username: user.username,
         role: user.role,
         exp: Date.now() + 7 * 24 * 60 * 60 * 1000 // 7天过期
     };
-    return btoa(JSON.stringify(payload));
+    const payloadStr = JSON.stringify(payload);
+    const payloadBase64 = btoa(payloadStr);
+    const signature = await signPayload(payloadStr);
+    // Token 格式: payload.signature
+    return `${payloadBase64}.${signature}`;
 }
 
-// 验证 token
-function verifyToken(token) {
+// 验证 token（带签名验证）
+async function verifyToken(token) {
     try {
-        const payload = JSON.parse(atob(token));
+        const parts = token.split('.');
+        if (parts.length !== 2) {
+            return null; // 格式错误
+        }
+
+        const [payloadBase64, signature] = parts;
+        const payloadStr = atob(payloadBase64);
+
+        // 验证签名
+        const isValid = await verifySignature(payloadStr, signature);
+        if (!isValid) {
+            return null; // 签名无效
+        }
+
+        const payload = JSON.parse(payloadStr);
         if (payload.exp < Date.now()) {
             return null; // token 过期
         }
@@ -42,6 +94,9 @@ function verifyToken(token) {
 // 注册
 export async function handleRegister(request, env) {
     try {
+        // 初始化认证模块
+        initAuth(env);
+
         const { username, password } = await request.json();
 
         if (!username || !password) {
@@ -89,7 +144,7 @@ export async function handleRegister(request, env) {
 
         // 生成 token
         const user = { id: userId, username, role: 'user' };
-        const token = generateToken(user);
+        const token = await generateToken(user);
 
         return new Response(JSON.stringify({
             success: true,
@@ -111,6 +166,9 @@ export async function handleRegister(request, env) {
 // 登录
 export async function handleLogin(request, env) {
     try {
+        // 初始化认证模块
+        initAuth(env);
+
         const { username, password } = await request.json();
 
         if (!username || !password) {
@@ -122,7 +180,7 @@ export async function handleLogin(request, env) {
 
         // 硬编码管理员账号 (TODO: 建议修改此处默认密码)
         if (username === 'admin' && password === 'admin123') {
-            const token = generateToken({ id: 0, username: 'admin', role: 'admin' });
+            const token = await generateToken({ id: 0, username: 'admin', role: 'admin' });
             return new Response(JSON.stringify({
                 success: true,
                 token,
@@ -155,7 +213,7 @@ export async function handleLogin(request, env) {
         }
 
         // 生成 token
-        const token = generateToken(user);
+        const token = await generateToken(user);
 
         return new Response(JSON.stringify({
             success: true,
@@ -177,6 +235,9 @@ export async function handleLogin(request, env) {
 // 获取当前用户信息
 export async function handleGetMe(request, env) {
     try {
+        // 初始化认证模块
+        initAuth(env);
+
         const authHeader = request.headers.get('Authorization');
         if (!authHeader || !authHeader.startsWith('Bearer ')) {
             return new Response(JSON.stringify({ error: '未授权' }), {
@@ -186,7 +247,7 @@ export async function handleGetMe(request, env) {
         }
 
         const token = authHeader.substring(7);
-        const payload = verifyToken(token);
+        const payload = await verifyToken(token);
 
         if (!payload) {
             return new Response(JSON.stringify({ error: 'Token无效或已过期' }), {
@@ -211,13 +272,16 @@ export async function handleGetMe(request, env) {
     }
 }
 
-// 认证中间件 - 从 token 中提取用户信息
-export function authenticate(request) {
+// 认证中间件 - 从 token 中提取用户信息（异步版本）
+export async function authenticate(request, env) {
+    // 初始化认证模块
+    initAuth(env);
+
     const authHeader = request.headers.get('Authorization');
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
         return null;
     }
 
     const token = authHeader.substring(7);
-    return verifyToken(token);
+    return await verifyToken(token);
 }

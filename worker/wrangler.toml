@@ -9,8 +9,17 @@ binding = "DB"
 database_name = "account-manager-db"
 database_id = "YOUR_DATABASE_ID_HERE"
 
+# JWT 密钥配置（生产环境请使用 wrangler secret 设置）
+# 运行: wrangler secret put JWT_SECRET
+# 然后输入一个强随机密钥（建议至少32个字符）
+[vars]
+# JWT_SECRET = "your-secret-key-here"  # 不要在这里设置！使用 wrangler secret
+
 # 本地开发配置
 [env.dev]
+[env.dev.vars]
+JWT_SECRET = "dev-secret-key-for-local-testing-only"
+
 [[env.dev.d1_databases]]
 binding = "DB"
 database_name = "account-manager-db"

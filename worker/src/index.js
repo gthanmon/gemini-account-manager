@@ -38,8 +38,8 @@ export default {
 
             // ===== 需要认证的路由 =====
 
-            // 认证检查
-            const currentUser = authenticate(request);
+            // 认证检查（异步）
+            const currentUser = await authenticate(request, env);
             if (!currentUser) {
                 const errorResponse = new Response(JSON.stringify({ error: '未授权,请先登录' }), {
                     status: 401,
