@@ -1223,8 +1223,8 @@ function initNotifications() {
     // 初始检查
     checkExpiredNotifications();
 
-    // 每5分钟检查一次
-    setInterval(checkExpiredNotifications, 5 * 60 * 1000);
+    // 每30分钟检查一次（节省API调用）
+    setInterval(checkExpiredNotifications, 30 * 60 * 1000);
 }
 
 async function checkExpiredNotifications() {
