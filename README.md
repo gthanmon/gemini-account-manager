@@ -8,6 +8,7 @@
 
 - **无服务器架构**: 完全基于 Cloudflare 生态，免费、即时扩缩容。
 - **多用户支持**: 用户注册/登录 (SHA-256)，数据隔离。
+- **安全认证**: Token 采用 HMAC-SHA256 签名，防止伪造。
 - **库存管理**: 导入账号、区分个人号/家庭组。
 - **车位管理**: 家庭组 5 车位分配、释放、记录买家信息。
 - **售出记录**: 个人号售出标记、收入统计。
@@ -40,14 +41,23 @@ cd worker
 wrangler d1 execute account-manager-db --remote --file=../schema.sql
 ```
 
-### 5. 部署后端 Worker
+### 5. 设置 JWT 密钥（重要！）
+```bash
+# 在 worker 目录下
+wrangler secret put JWT_SECRET
+```
+输入一个强随机密钥（建议至少32个字符），例如：`Kj8#mP2$vL9@nQ4!xR7*bT1&cY6%hW3`
+
+> ⚠️ 此密钥用于 Token 签名验证，必须设置。如果不设置，系统会使用不安全的默认值。
+
+### 6. 部署后端 Worker
 ```bash
 # 在 worker 目录下
 wrangler deploy
 ```
 部署成功后获取 Worker URL (例如 `https://account-manager-worker.xxx.workers.dev`)。
 
-### 6. 配置前端
+### 7. 配置前端
 编辑 `frontend/config.js`：
 ```javascript
 // 环境开关: true=本地开发, false=远程生产
@@ -59,7 +69,7 @@ const REMOTE_URL = 'https://your-worker.xxx.workers.dev'; // 替换为你的 Wor
 ```
 **只需修改此文件，切换 `USE_LOCAL` 即可在本地和远程环境间切换。**
 
-### 7. 部署前端 Pages
+### 8. 部署前端 Pages
 ```bash
 cd frontend
 wrangler pages deploy . --project-name=account-manager
