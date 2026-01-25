@@ -142,7 +142,7 @@ wrangler pages deploy . --project-name=account-manager
 
 1. Windows 系统
 2. [Python 3.8+](https://www.python.org/)
-3. [VirtualBrowser](https://www.virtualbrowser.cn/) - 多开浏览器工具
+3. [VirtualBrowser](https://virtualbrowser.cc/) - 多开浏览器工具
 4. [Cloudflared](https://developers.cloudflare.com/cloudflare-one/connections/connect-apps/install-and-setup/installation/) - 内网穿透工具
 
 ### 步骤 1：安装 Python 依赖
