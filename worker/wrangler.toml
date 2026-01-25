@@ -7,7 +7,7 @@ compatibility_date = "2024-01-16"
 [[d1_databases]]
 binding = "DB"
 database_name = "account-manager-db"
-database_id = "YOUR_DATABASE_ID_HERE"
+database_id = "your-database-id-here"
 
 # JWT 密钥配置（生产环境请使用 wrangler secret 设置）
 # 运行: wrangler secret put JWT_SECRET
@@ -23,4 +23,4 @@ JWT_SECRET = "dev-secret-key-for-local-testing-only"
 [[env.dev.d1_databases]]
 binding = "DB"
 database_name = "account-manager-db"
-database_id = "YOUR_DATABASE_ID_HERE"
+database_id = "your-database-id-here"

@@ -8,96 +8,225 @@
     <link rel="stylesheet" href="styles.css">
     <style>
         .admin-container {
-            max-width: 1200px;
+            max-width: 1400px;
             margin: 0 auto;
-            padding: var(--spacing-xl);
+            padding: var(--space-xl) var(--space-lg);
         }
 
         .admin-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: var(--spacing-xl);
-            padding-bottom: var(--spacing-lg);
-            border-bottom: 1px solid var(--border);
+            margin-bottom: var(--space-2xl);
+            padding-bottom: var(--space-lg);
+            border-bottom: 1px solid var(--color-divider);
+        }
+
+        .admin-title {
+            display: flex;
+            align-items: center;
+            gap: var(--space-md);
+        }
+
+        .admin-title h1 {
+            font-size: var(--font-size-2xl);
+            font-weight: var(--font-weight-bold);
+            background: var(--gradient-primary);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .admin-title-icon {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 48px;
+            height: 48px;
+            background: var(--gradient-primary);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-glow);
+        }
+
+        .admin-title-icon svg {
+            width: 24px;
+            height: 24px;
+            color: white;
         }
 
         .user-info {
             display: flex;
             align-items: center;
-            gap: var(--spacing-md);
+            gap: var(--space-md);
+        }
+
+        .user-info span {
+            color: var(--color-text-secondary);
+            font-size: var(--font-size-sm);
         }
 
         .logout-btn {
-            padding: 8px 16px;
-            background: var(--bg-secondary);
-            border: 1px solid var(--border);
-            border-radius: var(--radius-md);
-            color: var(--text-primary);
+            display: inline-flex;
+            align-items: center;
+            gap: var(--space-sm);
+            padding: var(--space-sm) var(--space-md);
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            border-radius: var(--radius-lg);
+            color: var(--color-danger);
+            font-size: var(--font-size-sm);
+            font-weight: var(--font-weight-medium);
             cursor: pointer;
-            font-size: 0.9rem;
-            transition: var(--transition);
+            transition: all var(--transition-base);
         }
 
         .logout-btn:hover {
-            background: var(--border);
+            background: var(--color-danger);
+            border-color: var(--color-danger);
+            color: white;
         }
 
+        .logout-btn svg {
+            width: 16px;
+            height: 16px;
+        }
+
+        /* Stats Grid */
         .stats-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: var(--spacing-lg);
-            margin-bottom: var(--spacing-xl);
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: var(--space-lg);
+            margin-bottom: var(--space-2xl);
         }
 
         .stat-card {
-            background: var(--bg-primary);
-            padding: var(--spacing-lg);
-            border-radius: var(--radius-lg);
-            border: 1px solid var(--border);
-            text-align: center;
-        }
-
-        .stat-card h3 {
-            font-size: 0.9rem;
-            color: var(--text-muted);
-            margin-bottom: var(--spacing-sm);
-        }
-
-        .stat-card .value {
-            font-size: 1.8rem;
-            font-weight: 700;
-            color: var(--primary);
-        }
-
-        .users-table-container {
-            background: var(--bg-primary);
-            border-radius: var(--radius-lg);
-            border: 1px solid var(--border);
+            position: relative;
+            background: var(--color-bg-secondary);
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius-xl);
+            padding: var(--space-xl);
+            display: flex;
+            align-items: center;
+            gap: var(--space-lg);
+            transition: all var(--transition-base);
             overflow: hidden;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: var(--gradient-primary);
+            transform: scaleX(0);
+            transform-origin: left;
+            transition: transform var(--transition-slow);
+        }
+
+        .stat-card:hover {
+            transform: translateY(-4px);
+            border-color: var(--color-primary);
+            box-shadow: var(--shadow-lg), var(--shadow-glow);
+        }
+
+        .stat-card:hover::before {
+            transform: scaleX(1);
+        }
+
+        .stat-card .stat-icon {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 56px;
+            height: 56px;
+            background: rgba(99, 102, 241, 0.1);
+            border-radius: var(--radius-lg);
+            color: var(--color-primary-light);
+            flex-shrink: 0;
+        }
+
+        .stat-card .stat-icon svg {
+            width: 28px;
+            height: 28px;
+        }
+
+        .stat-card .stat-content h3 {
+            font-size: var(--font-size-sm);
+            color: var(--color-text-muted);
+            margin-bottom: var(--space-xs);
+            font-weight: var(--font-weight-medium);
+        }
+
+        .stat-card .stat-content .value {
+            font-size: var(--font-size-2xl);
+            font-weight: var(--font-weight-bold);
+            color: var(--color-text-primary);
+        }
+
+        .stat-card.success .stat-icon {
+            background: rgba(34, 197, 94, 0.1);
+            color: var(--color-success);
+        }
+
+        .stat-card.success .value {
+            color: var(--color-success);
+        }
+
+        /* Users Table */
+        .users-table-container {
+            background: var(--color-bg-secondary);
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius-xl);
+            overflow: hidden;
+            box-shadow: var(--shadow-md);
+        }
+
+        .table-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: var(--space-lg);
+            border-bottom: 1px solid var(--color-divider);
+        }
+
+        .table-header h2 {
+            display: flex;
+            align-items: center;
+            gap: var(--space-sm);
+            font-size: var(--font-size-lg);
+            font-weight: var(--font-weight-semibold);
+            color: var(--color-text-primary);
+        }
+
+        .table-header h2 svg {
+            width: 22px;
+            height: 22px;
+            color: var(--color-primary);
         }
 
         table {
             width: 100%;
             border-collapse: collapse;
-            font-size: 0.95rem;
         }
 
         th {
-            background: var(--bg-secondary);
-            padding: var(--spacing-md) var(--spacing-lg);
+            background: var(--color-bg-tertiary);
+            padding: var(--space-md) var(--space-lg);
             text-align: left;
-            font-weight: 600;
-            color: var(--text-secondary);
-            border-bottom: 1px solid var(--border);
+            font-size: var(--font-size-sm);
+            font-weight: var(--font-weight-semibold);
+            color: var(--color-text-secondary);
+            border-bottom: 1px solid var(--color-border);
             white-space: nowrap;
         }
 
         td {
-            padding: var(--spacing-md) var(--spacing-lg);
-            border-bottom: 1px solid var(--border);
-            color: var(--text-primary);
+            padding: var(--space-md) var(--space-lg);
+            border-bottom: 1px solid var(--color-divider);
+            color: var(--color-text-primary);
+            font-size: var(--font-size-sm);
             vertical-align: middle;
         }
 
@@ -105,50 +234,86 @@
             border-bottom: none;
         }
 
+        tbody tr {
+            transition: background var(--transition-fast);
+        }
+
         tbody tr:hover {
-            background: rgba(255, 255, 255, 0.02);
+            background: rgba(99, 102, 241, 0.03);
         }
 
         .badge-admin {
-            background: rgba(99, 102, 241, 0.1);
-            color: #6366f1;
-            padding: 2px 8px;
-            border-radius: 4px;
-            font-size: 0.8rem;
-            font-weight: 500;
+            display: inline-flex;
+            align-items: center;
+            gap: var(--space-xs);
+            background: rgba(99, 102, 241, 0.15);
+            color: var(--color-primary-light);
+            padding: 4px 10px;
+            border-radius: var(--radius-md);
+            font-size: var(--font-size-xs);
+            font-weight: var(--font-weight-semibold);
         }
 
         .badge-user {
-            background: rgba(16, 185, 129, 0.1);
-            color: #10b981;
-            padding: 2px 8px;
-            border-radius: 4px;
-            font-size: 0.8rem;
-            font-weight: 500;
+            display: inline-flex;
+            align-items: center;
+            gap: var(--space-xs);
+            background: rgba(34, 197, 94, 0.15);
+            color: var(--color-success);
+            padding: 4px 10px;
+            border-radius: var(--radius-md);
+            font-size: var(--font-size-xs);
+            font-weight: var(--font-weight-semibold);
         }
 
-        .stat-value {
-            font-weight: 600;
-            color: var(--primary);
+        .stat-value-cell {
+            font-weight: var(--font-weight-semibold);
+            color: var(--color-primary-light);
         }
 
-        .stat-revenue {
-            color: #10b981;
-            font-weight: 600;
+        .stat-revenue-cell {
+            font-weight: var(--font-weight-semibold);
+            color: var(--color-success);
         }
 
-        /* 自定义确认对话框 */
+        .delete-user-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: var(--space-xs);
+            padding: 6px 12px;
+            background: rgba(239, 68, 68, 0.1);
+            color: var(--color-danger);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            border-radius: var(--radius-md);
+            font-size: var(--font-size-xs);
+            font-weight: var(--font-weight-medium);
+            cursor: pointer;
+            transition: all var(--transition-base);
+        }
+
+        .delete-user-btn:hover {
+            background: var(--color-danger);
+            border-color: var(--color-danger);
+            color: white;
+        }
+
+        .delete-user-btn svg {
+            width: 14px;
+            height: 14px;
+        }
+
+        /* Confirm Dialog */
         .confirm-overlay {
             display: none;
             position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(0, 0, 0, 0.7);
+            inset: 0;
+            background: rgba(2, 6, 23, 0.85);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
             align-items: center;
             justify-content: center;
-            z-index: 10000;
+            z-index: 1000;
+            padding: var(--space-lg);
         }
 
         .confirm-overlay.show {
@@ -156,59 +321,109 @@
         }
 
         .confirm-dialog {
-            background: var(--bg-primary);
-            border-radius: var(--radius-lg);
-            padding: var(--spacing-xl);
-            max-width: 400px;
-            width: 90%;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+            background: var(--color-bg-secondary);
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius-2xl);
+            padding: var(--space-xl);
+            max-width: 420px;
+            width: 100%;
+            box-shadow: var(--shadow-xl);
+            animation: slideUp 0.3s ease-out;
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(24px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
         }
 
         .confirm-title {
-            font-size: 1.25rem;
-            font-weight: 600;
-            margin-bottom: var(--spacing-md);
-            color: #ef4444;
+            display: flex;
+            align-items: center;
+            gap: var(--space-sm);
+            font-size: var(--font-size-lg);
+            font-weight: var(--font-weight-semibold);
+            margin-bottom: var(--space-md);
+            color: var(--color-danger);
+        }
+
+        .confirm-title svg {
+            width: 22px;
+            height: 22px;
         }
 
         .confirm-message {
-            color: var(--text-secondary);
-            margin-bottom: var(--spacing-xl);
-            line-height: 1.6;
+            color: var(--color-text-secondary);
+            margin-bottom: var(--space-xl);
+            line-height: var(--line-height-relaxed);
             white-space: pre-wrap;
+            font-size: var(--font-size-sm);
         }
 
         .confirm-buttons {
             display: flex;
-            gap: var(--spacing-md);
+            gap: var(--space-md);
             justify-content: flex-end;
         }
 
         .confirm-btn {
-            padding: var(--spacing-sm) var(--spacing-lg);
-            border-radius: var(--radius-md);
-            font-weight: 500;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: var(--space-sm);
+            padding: var(--space-sm) var(--space-lg);
+            border-radius: var(--radius-lg);
+            font-size: var(--font-size-sm);
+            font-weight: var(--font-weight-medium);
             cursor: pointer;
             border: none;
-            transition: var(--transition);
+            transition: all var(--transition-base);
         }
 
         .confirm-btn-cancel {
-            background: var(--bg-secondary);
-            color: var(--text-primary);
+            background: var(--color-bg-tertiary);
+            color: var(--color-text-primary);
         }
 
         .confirm-btn-cancel:hover {
-            background: var(--border);
+            background: var(--color-border);
         }
 
         .confirm-btn-confirm {
-            background: #ef4444;
+            background: var(--color-danger);
             color: white;
         }
 
         .confirm-btn-confirm:hover {
             background: #dc2626;
+            transform: translateY(-2px);
+            box-shadow: 0 0 20px rgba(239, 68, 68, 0.3);
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .admin-header {
+                flex-direction: column;
+                gap: var(--space-md);
+                align-items: flex-start;
+            }
+
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .users-table-container {
+                overflow-x: auto;
+            }
+
+            table {
+                min-width: 800px;
+            }
         }
     </style>
 </head>
@@ -216,30 +431,59 @@
 <body>
     <div class="admin-container">
         <header class="admin-header">
-            <h1>Gemini账号管理 - 管理员后台</h1>
+            <div class="admin-title">
+                <div class="admin-title-icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/></svg>
+                </div>
+                <h1>Gemini账号管理 - 管理员后台</h1>
+            </div>
             <div class="user-info">
                 <span id="current-user">加载中...</span>
-                <button id="logout-btn" class="logout-btn">退出</button>
+                <button id="logout-btn" class="logout-btn">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" x2="9" y1="12" y2="12"/></svg>
+                    退出
+                </button>
             </div>
         </header>
 
         <main>
             <div class="stats-grid">
                 <div class="stat-card">
-                    <h3>总用户数</h3>
-                    <div id="total-users" class="value">0</div>
+                    <div class="stat-icon">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                    </div>
+                    <div class="stat-content">
+                        <h3>总用户数</h3>
+                        <div id="total-users" class="value">0</div>
+                    </div>
                 </div>
                 <div class="stat-card">
-                    <h3>总账号数</h3>
-                    <div id="total-accounts" class="value">0</div>
+                    <div class="stat-icon">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m7.5 4.27 9 5.15"/><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg>
+                    </div>
+                    <div class="stat-content">
+                        <h3>总账号数</h3>
+                        <div id="total-accounts" class="value">0</div>
+                    </div>
                 </div>
-                <div class="stat-card">
-                    <h3>总收入</h3>
-                    <div id="total-revenue" class="value">¥0.00</div>
+                <div class="stat-card success">
+                    <div class="stat-icon">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" x2="12" y1="2" y2="22"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+                    </div>
+                    <div class="stat-content">
+                        <h3>总收入</h3>
+                        <div id="total-revenue" class="value">¥0.00</div>
+                    </div>
                 </div>
             </div>
 
             <div class="users-table-container">
+                <div class="table-header">
+                    <h2>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                        用户列表
+                    </h2>
+                </div>
                 <table>
                     <thead>
                         <tr>
@@ -256,7 +500,10 @@
                     </thead>
                     <tbody id="users-table-body">
                         <tr>
-                            <td colspan="9" style="text-align: center;">加载中...</td>
+                            <td colspan="9" style="text-align: center; color: var(--color-text-muted); padding: var(--space-xl);">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="animation: spin 1s linear infinite; margin-bottom: 8px;"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
+                                <div>加载中...</div>
+                            </td>
                         </tr>
                     </tbody>
                 </table>
@@ -267,11 +514,17 @@
     <!-- 自定义确认对话框 -->
     <div class="confirm-overlay" id="confirmOverlay">
         <div class="confirm-dialog">
-            <div class="confirm-title">⚠️ 确认删除</div>
+            <div class="confirm-title">
+                <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>
+                确认删除
+            </div>
             <div class="confirm-message" id="confirmMessage"></div>
             <div class="confirm-buttons">
                 <button class="confirm-btn confirm-btn-cancel" id="confirmCancel">取消</button>
-                <button class="confirm-btn confirm-btn-confirm" id="confirmOk">确认删除</button>
+                <button class="confirm-btn confirm-btn-confirm" id="confirmOk">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
+                    确认删除
+                </button>
             </div>
         </div>
     </div>
@@ -397,26 +650,42 @@
             const tbody = document.getElementById('users-table-body');
             tbody.innerHTML = '';
 
+            if (users.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="9" style="text-align: center; color: var(--color-text-muted); padding: var(--space-xl);">
+                            暂无用户数据
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
             users.forEach(user => {
                 const tr = document.createElement('tr');
                 const stats = user.stats || {};
 
                 // 管理员账号不显示删除按钮
                 const deleteBtn = user.role === 'admin'
-                    ? '<span style="color: var(--text-muted); font-size: 0.8rem;">-</span>'
-                    : `<button class="delete-user-btn" data-user-id="${user.id}" data-username="${user.username}" style="padding: 4px 12px; background: rgba(239, 68, 68, 0.1); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.3); border-radius: 4px; cursor: pointer; font-size: 0.85rem;">删除</button>`;
+                    ? '<span style="color: var(--color-text-muted); font-size: var(--font-size-xs);">—</span>'
+                    : `<button class="delete-user-btn" data-user-id="${user.id}" data-username="${user.username}">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
+                        删除
+                       </button>`;
+
+                const roleBadge = user.role === 'admin'
+                    ? '<span class="badge-admin">管理员</span>'
+                    : '<span class="badge-user">用户</span>';
 
                 tr.innerHTML = `
-                    <td style="font-weight: 500; color: var(--text-muted);">#${user.id}</td>
-                    <td style="font-weight: 500;">${user.username}</td>
-                    <td><span class="badge-${user.role}">${user.role === 'admin' ? '管理员' : '用户'}</span></td>
-                    <td style="color: var(--text-muted); font-size: 0.9rem;">${new Date(user.created_at).toLocaleString()}</td>
-                    <td class="stat-value">${stats.total}</td>
-                    <td class="stat-value">
-                        ${stats.personalActive} / ${stats.personalSold}
-                    </td>
-                    <td class="stat-value">${stats.familyCount}</td>
-                    <td class="stat-revenue">¥${stats.revenue}</td>
+                    <td style="font-weight: var(--font-weight-medium); color: var(--color-text-muted);">#${user.id}</td>
+                    <td style="font-weight: var(--font-weight-semibold);">${user.username}</td>
+                    <td>${roleBadge}</td>
+                    <td style="color: var(--color-text-muted); font-size: var(--font-size-xs);">${new Date(user.created_at).toLocaleString()}</td>
+                    <td class="stat-value-cell">${stats.total}</td>
+                    <td class="stat-value-cell">${stats.personalActive} / ${stats.personalSold}</td>
+                    <td class="stat-value-cell">${stats.familyCount}</td>
+                    <td class="stat-revenue-cell">¥${stats.revenue}</td>
                     <td>${deleteBtn}</td>
                 `;
                 tbody.appendChild(tr);
@@ -435,6 +704,12 @@
         // 初始化
         loadUsers();
     </script>
+    <style>
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+    </style>
 </body>
 
 </html>

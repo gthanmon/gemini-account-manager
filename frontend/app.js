@@ -164,13 +164,45 @@ function initImport() {
             showToast('导入失败,请检查网络连接', 'error');
         } finally {
             importBtn.disabled = false;
-            importBtn.innerHTML = '<span class="btn-icon">⬆️</span>开始导入';
+            importBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/></svg> 开始导入';
         }
     });
 }
 
 // ===== 列表功能 =====
 let currentTab = 'personal'; // 当前激活的标签页
+
+// 切换标签页（通过点击统计卡片）
+function switchTab(tabName) {
+    // 更新卡片状态
+    document.querySelectorAll('.stat-card.clickable').forEach(card => {
+        card.classList.remove('active');
+    });
+    const activeCard = document.querySelector(`.stat-card[data-tab="${tabName}"]`);
+    if (activeCard) {
+        activeCard.classList.add('active');
+    }
+
+    // 切换内容
+    document.querySelectorAll('.tab-content').forEach(content => {
+        content.classList.remove('active');
+    });
+    document.getElementById(`${tabName}-tab-content`).classList.add('active');
+
+    // 更新当前标签
+    currentTab = tabName;
+
+    // 清空选择状态
+    selectedAccountIds.clear();
+    document.getElementById('select-all-checkbox').checked = false;
+    updateBatchUI();
+
+    // 加载对应数据
+    loadAccounts();
+}
+
+// 暴露到全局
+window.switchTab = switchTab;
 
 function initList() {
     const searchInput = document.getElementById('search-input');
@@ -242,12 +274,6 @@ async function loadStats() {
         document.getElementById('stat-family').textContent = data.familyActive || 0;
         document.getElementById('stat-slots').textContent = data.availableSlots || 0;
         document.getElementById('stat-banned').textContent = data.bannedCount || 0;
-
-        // 更新标签页计数
-        document.getElementById('personal-count').textContent = data.personalActive || 0;
-        document.getElementById('sold-count').textContent = data.personalSold || 0;
-        document.getElementById('family-count').textContent = data.familyActive || 0;
-        document.getElementById('banned-count').textContent = data.bannedCount || 0;
     } catch (error) {
         console.error('Failed to load stats:', error);
         if (error.message !== 'Failed to fetch') {
@@ -359,23 +385,26 @@ function createAccountCard(account) {
     card.innerHTML = `
     <div class="account-header">
       <div style="display: flex; align-items: center; gap: 8px;">
-        <input type="checkbox" class="account-checkbox" data-id="${account.id}" 
+        <input type="checkbox" class="account-checkbox" data-id="${account.id}"
           onchange="toggleAccountSelection(${account.id}, this.checked)"
           style="width: 18px; height: 18px; cursor: pointer;">
-        <span class="account-type-badge badge-${account.type.toLowerCase()}">
-          ${account.type === 'PERSONAL' ? '👤 个人号' : '👨‍👩‍👧‍👦 家庭组'}
+        <span class="account-type-badge ${account.status === 'BANNED' ? 'badge-banned' : 'badge-' + account.type.toLowerCase()}">
+          ${account.status === 'BANNED' ?
+            '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="m4.9 4.9 14.2 14.2"/></svg> 异常号' :
+            (account.type === 'PERSONAL' ? '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg> 个人号' : '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg> 家庭组')}
         </span>
       </div>
       <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 4px;">
-        <span class="account-status status-${account.status.toLowerCase()}" 
-          ${account.status === 'SOLD' ? 'data-cancel-sold="true" style="cursor: pointer;" title="点击取消售出"' : ''}>
-          ${statusMap[account.status]}
-        </span>
         ${account.status === 'BANNED' && account.ban_reason ? `
-          <span style="font-size: 0.75rem; color: #ef4444; text-align: right;">
+          <span class="account-status status-banned" style="font-size: 0.75rem; max-width: 120px; text-align: right; white-space: normal; line-height: 1.3;">
             ${account.ban_reason}
           </span>
-        ` : ''}
+        ` : `
+          <span class="account-status status-${account.status.toLowerCase()}"
+            ${account.status === 'SOLD' ? 'data-cancel-sold="true" style="cursor: pointer;" title="点击取消售出"' : ''}>
+            ${statusMap[account.status]}
+          </span>
+        `}
       </div>
     </div>
 
@@ -384,22 +413,22 @@ function createAccountCard(account) {
         <span class="info-label">账号</span>
         <span class="info-value">
           ${account.email}
-          <button class="copy-btn" onclick="copyText('${account.email}')" title="复制">📋</button>
+          <button class="copy-btn" onclick="copyText('${account.email}')" title="复制"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg></button>
         </span>
       </div>
       <div class="info-row">
         <span class="info-label">密码</span>
         <span class="info-value">
           ${maskPassword(account.password)}
-          <button class="copy-btn" onclick="copyText('${account.password}')" title="复制">📋</button>
+          <button class="copy-btn" onclick="copyText('${account.password}')" title="复制"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg></button>
         </span>
       </div>
       ${account.backup_email ? `
         <div class="info-row">
           <span class="info-label">辅邮</span>
           <span class="info-value">
-            ${account.backup_email}
-            <button class="copy-btn" onclick="copyText('${account.backup_email}')" title="复制">📋</button>
+            ${truncateEmail(account.backup_email)}
+            <button class="copy-btn" onclick="copyText('${account.backup_email}')" title="复制"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg></button>
           </span>
         </div>
       ` : ''}
@@ -423,15 +452,15 @@ function createAccountCard(account) {
     
     ${account.type === 'PERSONAL' && account.status === 'SOLD' && account.buyer_name ? `
       <div class="buyer-info">
-        <div class="buyer-info-title">💰 售出信息</div>
+        <div class="buyer-info-title"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" x2="12" y1="2" y2="22"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg> 售出信息</div>
         <div class="info-row">
           <span class="info-label">买家</span>
           <span class="info-value">${account.buyer_name}</span>
         </div>
-        ${account.buyer_order ? `
+        ${account.buyer_source ? `
           <div class="info-row">
-            <span class="info-label">订单号</span>
-            <span class="info-value">${account.buyer_order}</span>
+            <span class="info-label">来源</span>
+            <span class="info-value">${account.buyer_source}</span>
           </div>
         ` : ''}
         ${account.buyer_price ? `
@@ -449,31 +478,70 @@ function createAccountCard(account) {
       </div>
     ` : ''}
 
-    <div class="account-actions">
+    <div class="account-actions${account.status === 'SOLD' ? ' sold-actions' : ''}">
       <button class="action-btn" onclick="copyFullAccount(${account.id})">
-        📄 复制全部
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M10 9H8"/><path d="M16 13H8"/><path d="M16 17H8"/></svg>
+        复制全部
       </button>
+      ${account.status === 'SOLD' ? `
+      <button class="action-btn" onclick="openEditSoldModal(${account.id})">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/></svg>
+        编辑售出
+      </button>
+      <button class="action-btn warning" onclick="cancelSold(${account.id})">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7v6h6"/><path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13"/></svg>
+        取消售出
+      </button>
+      <button class="action-btn danger" onclick="deleteAccount(${account.id})">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
+        删除账号
+      </button>
+      ` : `
+      <button class="action-btn" onclick="openEditModal(${account.id})">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/></svg>
+        编辑账号
+      </button>
+      `}
       ${account.status !== 'BANNED' && account.type === 'PERSONAL' && account.status !== 'SOLD' ? `
         <button class="action-btn" onclick="convertToFamily(${account.id})">
-          🔄 转家庭组
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></svg>
+          转家庭组
         </button>
         <button class="action-btn success" onclick="openSellModal(${account.id})">
-          💰 售出
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" x2="12" y1="2" y2="22"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+          售出账号
+        </button>
+        <button class="action-btn danger" onclick="markAsBanned(${account.id})">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="m4.9 4.9 14.2 14.2"/></svg>
+          标记异常
         </button>
       ` : ''}
       ${account.status !== 'BANNED' && account.type === 'FAMILY' ? `
         <button class="action-btn" onclick="convertToPersonal(${account.id})">
-          ↩️ 还原个人号
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7v6h6"/><path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13"/></svg>
+          还原个人
+        </button>
+        <button class="action-btn success" onclick="enableFamilyGroup(${account.id})">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+          创建家庭
+        </button>
+        <button class="action-btn" onclick="deletePayment(${account.id})">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="14" x="2" y="5" rx="2"/><line x1="2" x2="22" y1="10" y2="10"/></svg>
+          删除支付
         </button>
       ` : ''}
-      ${account.status !== 'BANNED' && account.status !== 'SOLD' ? `
-        <button class="action-btn danger" onclick="markAsBanned(${account.id})">
-          🚫 标记异常
-        </button>
-      ` : ''}
+      ${account.status !== 'SOLD' ? `
       <button class="action-btn danger" onclick="deleteAccount(${account.id})">
-        🗑️ 删除
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
+        删除账号
       </button>
+      ` : ''}
+      ${account.status === 'BANNED' ? `
+      <button class="action-btn success" onclick="cancelBanned(${account.id})">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7v6h6"/><path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13"/></svg>
+        取消异常
+      </button>
+      ` : ''}
     </div>
   `;
 
@@ -492,9 +560,17 @@ function createAccountCard(account) {
 
 // ===== 创建车位 HTML =====
 function createSlotsHTML(account) {
-    const slots = account.slots || [null, null, null, null, null];
+    // 确保 slots 被正确解析（可能是字符串或数组）
+    let slots = account.slots || [null, null, null, null, null];
+    if (typeof slots === 'string') {
+        try {
+            slots = JSON.parse(slots);
+        } catch (e) {
+            slots = [null, null, null, null, null];
+        }
+    }
 
-    let slotsHTML = '<div class="slots-container"><div class="slots-title">🎫 车位管理 (点击操作)</div><div class="slots-grid">';
+    let slotsHTML = '<div class="slots-container"><div class="slots-title"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z"/><path d="M13 5v2"/><path d="M13 17v2"/><path d="M13 11v2"/></svg> 车位管理 (点击操作)</div><div class="slots-grid">';
 
     const now = new Date();
     const soonThreshold = new Date(now.getTime() + 1 * 24 * 60 * 60 * 1000); // 1天后
@@ -503,32 +579,35 @@ function createSlotsHTML(account) {
         if (slot === null) {
             slotsHTML += `
         <div class="slot empty" onclick="assignSlot(${account.id}, ${index})">
-          <div class="slot-icon">⭕</div>
+          <div class="slot-icon"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/></svg></div>
           <div class="slot-label">空闲</div>
         </div>
       `;
         } else {
             // 检查到期状态
             let slotClass = 'occupied';
-            let slotIcon = '✅';
+            let slotIcon = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="m9 11 3 3L22 4"/></svg>';
 
             if (slot.expiresAt) {
                 const expiresAt = new Date(slot.expiresAt);
                 if (expiresAt <= now) {
                     // 已到期 - 红色
                     slotClass = 'occupied expired';
-                    slotIcon = '🔴';
+                    slotIcon = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/></svg>';
                 } else if (expiresAt <= soonThreshold) {
                     // 即将到期 - 黄色
                     slotClass = 'occupied expiring';
-                    slotIcon = '🟡';
+                    slotIcon = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>';
                 }
             }
+
+            // 截断买家名字，最多显示2个字符
+            const displayName = slot.buyer ? (slot.buyer.length > 2 ? slot.buyer.substring(0, 2) + '..' : slot.buyer) : '已用';
 
             slotsHTML += `
         <div class="slot ${slotClass}" onclick="viewSlotDetails(${account.id}, ${index})">
           <div class="slot-icon">${slotIcon}</div>
-          <div class="slot-label">${slot.buyer || '已用'}</div>
+          <div class="slot-label">${displayName}</div>
         </div>
       `;
         }
@@ -554,21 +633,24 @@ function viewSlotDetails(accountId, slotIndex) {
     currentSlotEdit = { accountId, slotIndex, action: 'view', slot };
 
     // 设置模态框为查看模式
-    document.getElementById('modal-title').textContent = '👥 车位详情';
+    document.getElementById('modal-title').innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg> 车位详情';
 
     // 显示买家信息（设置为只读）
     const buyerInput = document.getElementById('buyer-name');
-    const orderInput = document.getElementById('order-number');
+    const buyerSourceInput = document.getElementById('buyer-source');
+    const inviteEmailInput = document.getElementById('invite-email');
     const priceInput = document.getElementById('slot-price');
     const expireDaysInput = document.getElementById('expire-days');
 
     buyerInput.value = slot.buyer || '';
-    orderInput.value = slot.order || '';
+    buyerSourceInput.value = slot.buyerSource || '';
+    inviteEmailInput.value = slot.order || '';  // order 字段现在存储邀请邮箱
     priceInput.value = slot.price || '';
     expireDaysInput.value = slot.expireDays || '';
 
     buyerInput.disabled = true;
-    orderInput.disabled = true;
+    buyerSourceInput.disabled = true;
+    inviteEmailInput.disabled = true;
     priceInput.disabled = true;
     expireDaysInput.disabled = true;
 
@@ -599,9 +681,20 @@ function viewSlotDetails(accountId, slotIndex) {
         expireInfoGroup.style.display = 'none';
     }
 
+    // 隐藏邀请状态
+    document.getElementById('invite-status-group').style.display = 'none';
+
     // 显示下车按钮，隐藏确认按钮
     document.getElementById('slot-confirm-btn').style.display = 'none';
     document.getElementById('slot-release-btn').style.display = 'inline-block';
+
+    // 显示编辑按钮
+    document.getElementById('slot-edit-btn').style.display = 'inline-block';
+
+    // 显示自动踢出按钮，隐藏自动邀请按钮
+    document.getElementById('auto-invite-btn').style.display = 'none';
+    document.getElementById('auto-remove-btn').style.display = 'inline-block';
+    document.getElementById('slot-renew-btn').style.display = 'inline-block';
 
     // 显示模态框
     document.getElementById('slot-modal').classList.add('active');
@@ -609,20 +702,23 @@ function viewSlotDetails(accountId, slotIndex) {
 
 function assignSlot(accountId, slotIndex) {
     currentSlotEdit = { accountId, slotIndex, action: 'assign' };
-    document.getElementById('modal-title').textContent = '🚗 发车 - 分配车位';
+    document.getElementById('modal-title').innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-.6 0-1.1.4-1.4.9l-1.4 2.9A3.7 3.7 0 0 0 2 12v4c0 .6.4 1 1 1h2"/><circle cx="7" cy="17" r="2"/><path d="M9 17h6"/><circle cx="17" cy="17" r="2"/></svg> 发车 - 分配车位';
 
     const buyerInput = document.getElementById('buyer-name');
-    const orderInput = document.getElementById('order-number');
+    const buyerSourceInput = document.getElementById('buyer-source');
+    const inviteEmailInput = document.getElementById('invite-email');
     const priceInput = document.getElementById('slot-price');
     const expireDaysInput = document.getElementById('expire-days');
 
     buyerInput.value = '';
-    orderInput.value = '';
+    buyerSourceInput.value = '';
+    inviteEmailInput.value = '';
     priceInput.value = '';
     expireDaysInput.value = '';
 
     buyerInput.disabled = false;
-    orderInput.disabled = false;
+    buyerSourceInput.disabled = false;
+    inviteEmailInput.disabled = false;
     priceInput.disabled = false;
     expireDaysInput.disabled = false;
 
@@ -631,10 +727,44 @@ function assignSlot(accountId, slotIndex) {
     // 隐藏上车时间、到期时间和下车按钮
     document.getElementById('slot-time-group').style.display = 'none';
     document.getElementById('slot-expire-info-group').style.display = 'none';
+    document.getElementById('invite-status-group').style.display = 'none';
     document.getElementById('slot-confirm-btn').style.display = 'inline-block';
     document.getElementById('slot-release-btn').style.display = 'none';
+    document.getElementById('slot-edit-btn').style.display = 'none';
+    document.getElementById('auto-invite-btn').style.display = 'inline-block';
+    document.getElementById('auto-remove-btn').style.display = 'none';
+    document.getElementById('slot-renew-btn').style.display = 'none';
 
     document.getElementById('slot-modal').classList.add('active');
+}
+
+// 启用车位编辑模式
+function enableSlotEdit() {
+    if (!currentSlotEdit) return;
+
+    // 切换为编辑模式
+    currentSlotEdit.action = 'assign';
+
+    // 更新标题
+    document.getElementById('modal-title').innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/></svg> 编辑车位';
+
+    // 启用输入框
+    document.getElementById('buyer-name').disabled = false;
+    document.getElementById('buyer-source').disabled = false;
+    document.getElementById('invite-email').disabled = false;
+    document.getElementById('slot-price').disabled = false;
+    document.getElementById('expire-days').disabled = false;
+
+    // 显示服务期限输入框
+    document.getElementById('expire-days-group').style.display = 'block';
+
+    // 隐藏编辑按钮，显示确认按钮
+    document.getElementById('slot-edit-btn').style.display = 'none';
+    document.getElementById('slot-confirm-btn').style.display = 'inline-block';
+
+    // 隐藏自动踢出和续费按钮
+    document.getElementById('auto-remove-btn').style.display = 'none';
+    document.getElementById('slot-renew-btn').style.display = 'none';
 }
 
 function releaseSlot(accountId, slotIndex) {
@@ -658,11 +788,68 @@ function closeSlotModal() {
     currentSlotEdit = null;
 }
 
+// 续费功能
+function openRenewInput() {
+    if (!currentSlotEdit) return;
+    document.getElementById('renew-days').value = '31';
+    document.getElementById('renew-modal').classList.add('active');
+}
+
+function closeRenewModal() {
+    document.getElementById('renew-modal').classList.remove('active');
+}
+
+function confirmRenew() {
+    if (!currentSlotEdit) return;
+
+    const days = document.getElementById('renew-days').value.trim();
+    const daysNum = parseInt(days);
+
+    if (isNaN(daysNum) || daysNum <= 0) {
+        showToast('请输入有效的天数', 'error');
+        return;
+    }
+
+    closeRenewModal();
+    renewSlot(currentSlotEdit.accountId, currentSlotEdit.slotIndex, daysNum);
+}
+
+async function renewSlot(accountId, slotIndex, days) {
+    showToast('正在续费...', 'success');
+
+    try {
+        const response = await fetch(`${API_BASE_URL}/api/accounts/${accountId}`, {
+            method: 'PATCH',
+            headers: getAuthHeaders(),
+            body: JSON.stringify({
+                action: 'renewSlot',
+                slotIndex,
+                renewDays: days
+            })
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            showToast(`续费成功！已延长 ${days} 天`, 'success');
+            closeSlotModal();
+            loadAccounts();
+            loadStats();
+            checkExpiredNotifications();
+        } else {
+            showToast('续费失败: ' + data.error, 'error');
+        }
+    } catch (error) {
+        showToast('网络错误: ' + error.message, 'error');
+    }
+}
+
 async function confirmSlotAction() {
     if (!currentSlotEdit) return;
 
     const buyer = document.getElementById('buyer-name').value.trim();
-    const order = document.getElementById('order-number').value.trim();
+    const buyerSource = document.getElementById('buyer-source').value.trim();
+    const inviteEmail = document.getElementById('invite-email').value.trim();
     const price = document.getElementById('slot-price').value.trim();
     const expireDays = document.getElementById('expire-days').value.trim();
 
@@ -671,11 +858,11 @@ async function confirmSlotAction() {
         return;
     }
 
-    await updateSlot(currentSlotEdit.accountId, currentSlotEdit.slotIndex, currentSlotEdit.action, buyer, order, price, expireDays);
+    await updateSlot(currentSlotEdit.accountId, currentSlotEdit.slotIndex, currentSlotEdit.action, buyer, inviteEmail, price, expireDays, buyerSource);
     closeSlotModal();
 }
 
-async function updateSlot(accountId, slotIndex, action, buyer = '', order = '', price = '', expireDays = '') {
+async function updateSlot(accountId, slotIndex, action, buyer = '', order = '', price = '', expireDays = '', buyerSource = '') {
     try {
         const response = await fetch(`${API_BASE_URL}/api/accounts/${accountId}`, {
             method: 'PATCH',
@@ -687,7 +874,8 @@ async function updateSlot(accountId, slotIndex, action, buyer = '', order = '', 
                 buyer,
                 order,
                 price,
-                expireDays
+                expireDays,
+                buyerSource
             })
         });
 
@@ -695,8 +883,8 @@ async function updateSlot(accountId, slotIndex, action, buyer = '', order = '', 
 
         if (data.success) {
             showToast(action === 'assign' ? '车位分配成功' : '车位释放成功', 'success');
-            loadAccounts();
-            loadStats();
+            await loadAccounts();
+            await loadStats();
             checkExpiredNotifications(); // 刷新通知
         } else {
             showToast('操作失败: ' + data.error, 'error');
@@ -753,7 +941,7 @@ async function convertToPersonal(accountId) {
         console.log('convertToPersonal response:', data);
 
         if (data.success) {
-            showToast('✅ 已还原为个人号!请切换到"个人号库存"标签查看', 'success');
+            showToast('✅ 已还原为个人号!', 'success');
             loadAccounts();
             loadStats();
         } else {
@@ -762,6 +950,147 @@ async function convertToPersonal(accountId) {
     } catch (error) {
         console.error('convertToPersonal error:', error);
         showToast('❌ 网络错误: ' + error.message, 'error');
+    }
+}
+
+// ===== 创建家庭组 =====
+async function enableFamilyGroup(accountId) {
+    console.log('enableFamilyGroup called:', accountId);
+
+    // 获取账号信息
+    const account = accounts.find(acc => acc.id === accountId);
+    if (!account) {
+        showToast('❌ 未找到账号信息', 'error');
+        return;
+    }
+
+    showToast('🔄 正在创建家庭组...', 'success');
+
+    try {
+        const localApiUrl = localStorage.getItem('localApiUrl') || 'http://localhost:8090';
+        const response = await fetch(`${localApiUrl}/api/enable-family`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                family_account: account.email
+            })
+        });
+
+        const data = await response.json();
+        console.log('enableFamilyGroup response:', data);
+
+        if (data.success) {
+            showToast('✅ 家庭组创建成功！', 'success');
+        } else {
+            showToast('❌ 创建失败: ' + (data.error || '未知错误'), 'error');
+        }
+    } catch (error) {
+        console.error('enableFamilyGroup error:', error);
+        showToast('❌ 网络错误: ' + error.message, 'error');
+    }
+}
+
+// ===== 删除支付资料 =====
+let currentDeletePaymentAccountId = null;
+
+function deletePayment(accountId) {
+    console.log('deletePayment called:', accountId);
+
+    // 获取账号信息
+    const account = accounts.find(acc => acc.id === accountId);
+    if (!account) {
+        showToast('❌ 未找到账号信息', 'error');
+        return;
+    }
+
+    // 设置当前操作的账号
+    currentDeletePaymentAccountId = accountId;
+
+    // 显示邮箱
+    document.getElementById('delete-payment-email').textContent = account.email;
+
+    // 隐藏状态显示
+    document.getElementById('delete-payment-status-group').style.display = 'none';
+
+    // 重置确认按钮
+    const confirmBtn = document.getElementById('delete-payment-confirm-btn');
+    confirmBtn.disabled = false;
+    confirmBtn.textContent = '确认删除';
+
+    // 显示模态框
+    document.getElementById('delete-payment-modal').classList.add('active');
+}
+
+function closeDeletePaymentModal() {
+    document.getElementById('delete-payment-modal').classList.remove('active');
+    currentDeletePaymentAccountId = null;
+}
+
+async function confirmDeletePayment() {
+    if (!currentDeletePaymentAccountId) {
+        return;
+    }
+
+    const account = accounts.find(acc => acc.id === currentDeletePaymentAccountId);
+    if (!account) {
+        showToast('❌ 未找到账号信息', 'error');
+        closeDeletePaymentModal();
+        return;
+    }
+
+    // 显示状态
+    const statusGroup = document.getElementById('delete-payment-status-group');
+    const statusDiv = document.getElementById('delete-payment-status');
+    const confirmBtn = document.getElementById('delete-payment-confirm-btn');
+
+    statusGroup.style.display = 'block';
+    statusDiv.textContent = '⏳ 正在删除支付资料...';
+    statusDiv.style.color = '#f59e0b';
+    statusDiv.style.background = 'rgba(245, 158, 11, 0.1)';
+    confirmBtn.disabled = true;
+    confirmBtn.textContent = '处理中...';
+
+    try {
+        const localApiUrl = localStorage.getItem('localApiUrl') || 'http://localhost:8090';
+        const response = await fetch(`${localApiUrl}/api/delete-payment`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                family_account: account.email,
+                password: account.password,
+                totp_secret: account.twofa_secret || ''
+            })
+        });
+
+        const data = await response.json();
+        console.log('deletePayment response:', data);
+
+        if (data.success) {
+            statusDiv.textContent = '✅ 支付资料删除成功！';
+            statusDiv.style.color = '#10b981';
+            statusDiv.style.background = 'rgba(16, 185, 129, 0.1)';
+            showToast('✅ 支付资料删除成功！', 'success');
+
+            // 1.5秒后关闭弹窗
+            setTimeout(() => {
+                closeDeletePaymentModal();
+            }, 1500);
+        } else {
+            statusDiv.textContent = '❌ 删除失败: ' + (data.error || '未知错误');
+            statusDiv.style.color = '#ef4444';
+            statusDiv.style.background = 'rgba(239, 68, 68, 0.1)';
+            showToast('❌ 删除失败: ' + (data.error || '未知错误'), 'error');
+            confirmBtn.disabled = false;
+            confirmBtn.textContent = '重试';
+        }
+    } catch (error) {
+        console.error('deletePayment error:', error);
+        statusDiv.textContent = '❌ 网络错误: ' + error.message;
+        statusDiv.style.color = '#ef4444';
+        statusDiv.style.background = 'rgba(239, 68, 68, 0.1)';
+        showToast('❌ 网络错误: ' + error.message, 'error');
+        confirmBtn.disabled = false;
+        confirmBtn.textContent = '重试';
     }
 }
 
@@ -829,6 +1158,37 @@ async function confirmBan() {
     }
 }
 
+// ===== 取消异常 =====
+function cancelBanned(accountId) {
+    showConfirmModal('取消异常', '确定要取消异常状态吗？<br>账号将恢复为个人号库存。', async () => {
+        showToast('正在取消异常...', 'success');
+        try {
+            const response = await fetch(`${API_BASE_URL}/api/accounts/${accountId}`, {
+                method: 'PATCH',
+                headers: getAuthHeaders(),
+                body: JSON.stringify({
+                    action: 'updateStatus',
+                    status: 'ACTIVE',
+                    banReason: null
+                })
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                showToast('✅ 已取消异常，账号已恢复为库存', 'success');
+                loadAccounts();
+                loadStats();
+            } else {
+                showToast('❌ 操作失败: ' + (data.error || '未知错误'), 'error');
+            }
+        } catch (error) {
+            console.error('cancelBanned error:', error);
+            showToast('❌ 网络错误: ' + error.message, 'error');
+        }
+    });
+}
+
 // ===== 个人号售出功能 =====
 let currentSellAccountId = null;
 
@@ -838,6 +1198,7 @@ function openSellModal(accountId) {
 
     try {
         document.getElementById('sell-buyer-name').value = '';
+        document.getElementById('sell-buyer-source').value = '';
         document.getElementById('sell-order-number').value = '';
         document.getElementById('sell-price').value = '';
         document.getElementById('sell-modal').classList.add('active');
@@ -860,10 +1221,11 @@ async function confirmSell() {
     }
 
     const buyerName = document.getElementById('sell-buyer-name').value.trim();
+    const buyerSource = document.getElementById('sell-buyer-source').value.trim();
     const buyerOrder = document.getElementById('sell-order-number').value.trim();
     const buyerPrice = document.getElementById('sell-price').value.trim();
 
-    console.log('confirmSell called:', { accountId: currentSellAccountId, buyerName, buyerOrder, buyerPrice });
+    console.log('confirmSell called:', { accountId: currentSellAccountId, buyerName, buyerSource, buyerOrder, buyerPrice });
 
     if (!buyerName) {
         showToast('❌ 请输入买家昵称', 'error');
@@ -879,6 +1241,7 @@ async function confirmSell() {
             body: JSON.stringify({
                 action: 'sellPersonal',
                 buyerName,
+                buyerSource,
                 buyerOrder,
                 buyerPrice
             })
@@ -899,6 +1262,114 @@ async function confirmSell() {
         console.error('confirmSell error:', error);
         showToast('❌ 网络错误: ' + error.message, 'error');
     }
+}
+
+// ===== 编辑售出信息 =====
+let currentEditSoldAccountId = null;
+
+function openEditSoldModal(accountId) {
+    currentEditSoldAccountId = accountId;
+    const account = accounts.find(a => a.id === accountId);
+    if (!account) return;
+
+    document.getElementById('edit-sold-buyer-name').value = account.buyer_name || '';
+    document.getElementById('edit-sold-buyer-source').value = account.buyer_source || '';
+    document.getElementById('edit-sold-price').value = account.buyer_price || '';
+    document.getElementById('edit-sold-modal').classList.add('active');
+}
+
+function closeEditSoldModal() {
+    document.getElementById('edit-sold-modal').classList.remove('active');
+    currentEditSoldAccountId = null;
+}
+
+async function confirmEditSold() {
+    if (!currentEditSoldAccountId) return;
+
+    const buyerName = document.getElementById('edit-sold-buyer-name').value.trim();
+    const buyerSource = document.getElementById('edit-sold-buyer-source').value.trim();
+    const buyerPrice = document.getElementById('edit-sold-price').value.trim();
+
+    if (!buyerName) {
+        showToast('❌ 请输入买家昵称', 'error');
+        return;
+    }
+
+    try {
+        const response = await fetch(`${API_BASE_URL}/api/accounts/${currentEditSoldAccountId}`, {
+            method: 'PATCH',
+            headers: getAuthHeaders(),
+            body: JSON.stringify({
+                action: 'updateSoldInfo',
+                buyerName,
+                buyerSource,
+                buyerPrice
+            })
+        });
+
+        const data = await response.json();
+        if (data.success) {
+            showToast('✅ 售出信息已更新', 'success');
+            closeEditSoldModal();
+            loadAccounts();
+        } else {
+            showToast('❌ 更新失败: ' + (data.error || '未知错误'), 'error');
+        }
+    } catch (error) {
+        showToast('❌ 网络错误: ' + error.message, 'error');
+    }
+}
+
+// ===== 自定义确认弹窗 =====
+let confirmCallback = null;
+
+function showConfirmModal(title, message, callback) {
+    document.getElementById('confirm-modal-title').innerHTML = `
+        <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
+        ${title}
+    `;
+    document.getElementById('confirm-modal-message').innerHTML = message;
+    confirmCallback = callback;
+    document.getElementById('confirm-modal').classList.add('active');
+}
+
+function closeConfirmModal() {
+    document.getElementById('confirm-modal').classList.remove('active');
+    confirmCallback = null;
+}
+
+function executeConfirmAction() {
+    const callback = confirmCallback;  // 先保存回调
+    closeConfirmModal();  // 再关闭弹窗
+    if (callback) {
+        callback();  // 最后执行回调
+    }
+}
+
+// ===== 取消售出 =====
+async function cancelSold(accountId) {
+    showConfirmModal('取消售出', '确定要取消售出吗？<br>账号将恢复为库存状态。', async () => {
+        try {
+            const response = await fetch(`${API_BASE_URL}/api/accounts/${accountId}`, {
+                method: 'PATCH',
+                headers: getAuthHeaders(),
+                body: JSON.stringify({
+                    action: 'cancelSold'
+                })
+            });
+
+            const data = await response.json();
+            if (data.success) {
+                showToast('✅ 已取消售出，账号已恢复为库存', 'success');
+                loadAccounts();
+                loadStats();
+            } else {
+                showToast('❌ 操作失败: ' + (data.error || '未知错误'), 'error');
+            }
+        } catch (error) {
+            showToast('❌ 网络错误: ' + error.message, 'error');
+        }
+    });
 }
 
 // ===== 2FA 验证码 =====
@@ -1048,6 +1519,16 @@ function maskPassword(password) {
     return password.substring(0, 2) + '****' + password.substring(password.length - 2);
 }
 
+function truncateEmail(email) {
+    if (!email || email.length <= 20) return email;
+    const atIndex = email.indexOf('@');
+    if (atIndex === -1) return email;
+    const localPart = email.substring(0, atIndex);
+    const domainPart = email.substring(atIndex);
+    if (localPart.length <= 6) return email;
+    return localPart.substring(0, 3) + '...' + localPart.substring(localPart.length - 2) + domainPart;
+}
+
 function showToast(message, type = 'success') {
     const toast = document.getElementById('toast');
     toast.textContent = message;
@@ -1061,31 +1542,29 @@ function showToast(message, type = 'success') {
 
 // ===== 删除账号功能 =====
 async function deleteAccount(accountId) {
-    if (!confirm('确定要彻底删除这个账号吗？此操作无法撤销！')) {
-        return;
-    }
+    showConfirmModal('删除账号', '确定要彻底删除这个账号吗？<br>此操作无法撤销！', async () => {
+        showToast('正在删除账号...', 'success');
 
-    showToast('正在删除账号...', 'success');
+        try {
+            const response = await fetch(`${API_BASE_URL}/api/accounts/${accountId}`, {
+                method: 'DELETE',
+                headers: getAuthHeaders()
+            });
 
-    try {
-        const response = await fetch(`${API_BASE_URL}/api/accounts/${accountId}`, {
-            method: 'DELETE',
-            headers: getAuthHeaders()
-        });
+            const data = await response.json();
 
-        const data = await response.json();
-
-        if (data.success) {
-            showToast('✅ 账号已删除', 'success');
-            loadAccounts();
-            loadStats();
-        } else {
-            showToast('❌ 删除失败: ' + (data.error || '未知错误'), 'error');
+            if (data.success) {
+                showToast('✅ 账号已删除', 'success');
+                loadAccounts();
+                loadStats();
+            } else {
+                showToast('❌ 删除失败: ' + (data.error || '未知错误'), 'error');
+            }
+        } catch (error) {
+            console.error('deleteAccount error:', error);
+            showToast('❌ 网络错误: ' + error.message, 'error');
         }
-    } catch (error) {
-        console.error('deleteAccount error:', error);
-        showToast('❌ 网络错误: ' + error.message, 'error');
-    }
+    });
 }
 
 // ===== 批量操作功能 =====
@@ -1143,41 +1622,40 @@ function initBatchControls() {
     batchDeleteBtn.addEventListener('click', async () => {
         if (selectedAccountIds.size === 0) return;
 
-        if (!confirm(`确定要删除选中的 ${selectedAccountIds.size} 个账号吗？此操作不可逆！`)) {
-            return;
-        }
+        const count = selectedAccountIds.size;
+        showConfirmModal('批量删除', `确定要删除选中的 ${count} 个账号吗？<br>此操作无法撤销！`, async () => {
+            showToast('正在批量删除...', 'success');
 
-        showToast('正在批量删除...', 'success');
+            let successCount = 0;
+            let failCount = 0;
 
-        let successCount = 0;
-        let failCount = 0;
+            const deletePromises = Array.from(selectedAccountIds).map(async (id) => {
+                try {
+                    const response = await fetch(`${API_BASE_URL}/api/accounts/${id}`, {
+                        method: 'DELETE',
+                        headers: getAuthHeaders()
+                    });
+                    const data = await response.json();
+                    if (data.success) successCount++;
+                    else failCount++;
+                } catch (e) {
+                    failCount++;
+                }
+            });
 
-        const deletePromises = Array.from(selectedAccountIds).map(async (id) => {
-            try {
-                const response = await fetch(`${API_BASE_URL}/api/accounts/${id}`, {
-                    method: 'DELETE',
-                    headers: getAuthHeaders()
-                });
-                const data = await response.json();
-                if (data.success) successCount++;
-                else failCount++;
-            } catch (e) {
-                failCount++;
-            }
+            await Promise.all(deletePromises);
+
+            showToast(`批量删除完成: 成功 ${successCount} 个, 失败 ${failCount} 个`, successCount > 0 ? 'success' : 'error');
+
+            // 重置选择
+            selectedAccountIds.clear();
+            document.getElementById('select-all-checkbox').checked = false;
+            updateBatchUI();
+
+            // 刷新列表
+            loadAccounts();
+            loadStats();
         });
-
-        await Promise.all(deletePromises);
-
-        showToast(`批量删除完成: 成功 ${successCount} 个, 失败 ${failCount} 个`, successCount > 0 ? 'success' : 'error');
-
-        // 重置选择
-        selectedAccountIds.clear();
-        document.getElementById('select-all-checkbox').checked = false;
-        updateBatchUI();
-
-        // 刷新列表
-        loadAccounts();
-        loadStats();
     });
 }
 
@@ -1191,8 +1669,8 @@ function updateBatchUI() {
     if (selectedAccountIds.size > 0) {
         batchExportBtn.style.display = 'inline-flex';
         batchDeleteBtn.style.display = 'inline-flex';
-        batchExportBtn.innerHTML = `<span class="btn-icon">📤</span> 批量导出 (${selectedAccountIds.size})`;
-        batchDeleteBtn.innerHTML = `<span class="btn-icon">🗑️</span> 批量删除 (${selectedAccountIds.size})`;
+        batchExportBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg> 批量导出 (${selectedAccountIds.size})`;
+        batchDeleteBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg> 批量删除 (${selectedAccountIds.size})`;
     } else {
         batchExportBtn.style.display = 'none';
         batchDeleteBtn.style.display = 'none';
@@ -1218,6 +1696,374 @@ function toggleAccountSelection(id, checked) {
 
 // ===== 到期通知功能 =====
 let expiredNotifications = [];
+
+// ===== 本地 API 自动邀请功能 =====
+// 用户可以在 localStorage 中配置自己的本地 API 地址
+function getLocalApiUrl() {
+    try {
+        const stored = localStorage.getItem('localApiUrl');
+        console.log('[DEBUG] localStorage localApiUrl =', stored);
+        return stored || 'http://localhost:8090';
+    } catch (e) {
+        console.error('[DEBUG] localStorage 读取失败:', e);
+        return 'http://localhost:8090';
+    }
+}
+
+// 设置本地 API 地址
+function setLocalApiUrl(url) {
+    try {
+        console.log('[DEBUG] 正在保存 API 地址:', url);
+        localStorage.setItem('localApiUrl', url);
+        console.log('[DEBUG] 保存成功，验证:', localStorage.getItem('localApiUrl'));
+        showToast('✅ 本地 API 地址已保存', 'success');
+    } catch (e) {
+        console.error('[DEBUG] localStorage 保存失败:', e);
+        showToast('❌ 保存失败: ' + e.message, 'error');
+    }
+}
+
+// 自动发送邀请
+async function autoSendInvite() {
+    if (!currentSlotEdit) {
+        showToast('❌ 请先选择一个车位', 'error');
+        return;
+    }
+
+    const inviteEmail = document.getElementById('invite-email').value.trim();
+    if (!inviteEmail) {
+        showToast('❌ 请输入邀请邮箱', 'error');
+        return;
+    }
+
+    // 验证邮箱格式
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(inviteEmail)) {
+        showToast('❌ 请输入有效的邮箱地址', 'error');
+        return;
+    }
+
+    // 获取当前家庭组账号信息
+    const account = accounts.find(acc => acc.id === currentSlotEdit.accountId);
+    if (!account) {
+        showToast('❌ 未找到账号信息', 'error');
+        return;
+    }
+
+    const familyAccount = account.email;
+    const localApiUrl = getLocalApiUrl();
+
+    // 显示状态
+    const statusGroup = document.getElementById('invite-status-group');
+    const statusDiv = document.getElementById('invite-status');
+    const autoInviteBtn = document.getElementById('auto-invite-btn');
+
+    statusGroup.style.display = 'block';
+    statusDiv.textContent = '⏳ 正在发送邀请...';
+    statusDiv.style.color = '#f59e0b';
+    autoInviteBtn.disabled = true;
+    autoInviteBtn.textContent = '⏳ 发送中...';
+
+    try {
+        console.log(`调用本地 API: ${localApiUrl}/api/send-invite`);
+        console.log(`家庭组账号: ${familyAccount}`);
+        console.log(`邀请邮箱: ${inviteEmail}`);
+
+        const response = await fetch(`${localApiUrl}/api/send-invite`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                family_account: familyAccount,
+                invite_email: inviteEmail
+            })
+        });
+
+        const result = await response.json();
+        console.log('API 响应:', result);
+
+        if (result.success) {
+            statusDiv.textContent = `✅ ${result.message || '邀请发送成功!'}`;
+            statusDiv.style.color = '#10b981';
+            showToast('✅ 邀请发送成功!', 'success');
+
+            // 自动填写买家信息（如果为空）
+            const buyerInput = document.getElementById('buyer-name');
+            if (!buyerInput.value.trim()) {
+                buyerInput.value = inviteEmail.split('@')[0];
+            }
+        } else {
+            statusDiv.textContent = `❌ ${result.error || '发送失败'}`;
+            statusDiv.style.color = '#ef4444';
+            showToast(`❌ 发送失败: ${result.error}`, 'error');
+        }
+    } catch (error) {
+        console.error('自动邀请错误:', error);
+        let errorMessage = error.message;
+        if (error.message.includes('Failed to fetch')) {
+            errorMessage = '无法连接本地 API 服务，请确保服务已启动';
+        }
+        statusDiv.textContent = `❌ ${errorMessage}`;
+        statusDiv.style.color = '#ef4444';
+        showToast(`❌ 连接失败: ${errorMessage}`, 'error');
+    } finally {
+        autoInviteBtn.disabled = false;
+        autoInviteBtn.textContent = '自动发送邀请';
+    }
+}
+
+// 自动踢出成员
+async function autoRemoveMember() {
+    console.log('[DEBUG autoRemoveMember] 函数被调用');
+    console.log('[DEBUG autoRemoveMember] currentSlotEdit =', currentSlotEdit);
+
+    if (!currentSlotEdit) {
+        showToast('❌ 请先选择一个车位', 'error');
+        return;
+    }
+
+    const memberEmail = document.getElementById('invite-email').value.trim();
+    console.log('[DEBUG autoRemoveMember] memberEmail =', memberEmail);
+    console.log('[DEBUG autoRemoveMember] slot.order =', currentSlotEdit.slot?.order);
+
+    if (!memberEmail) {
+        showToast('❌ 没有成员邮箱信息', 'error');
+        return;
+    }
+
+    // 获取当前家庭组账号信息
+    const account = accounts.find(acc => acc.id === currentSlotEdit.accountId);
+    if (!account) {
+        showToast('❌ 未找到账号信息', 'error');
+        return;
+    }
+
+    const familyAccount = account.email;
+    const localApiUrl = getLocalApiUrl();
+
+    // 显示状态
+    const statusGroup = document.getElementById('invite-status-group');
+    const statusDiv = document.getElementById('invite-status');
+    const autoRemoveBtn = document.getElementById('auto-remove-btn');
+
+    statusGroup.style.display = 'block';
+    statusDiv.textContent = '⏳ 正在踢出成员...';
+    statusDiv.style.color = '#f59e0b';
+    if (autoRemoveBtn) {
+        autoRemoveBtn.disabled = true;
+        autoRemoveBtn.textContent = '⏳ 踢出中...';
+    }
+
+    try {
+        console.log(`调用本地 API: ${localApiUrl}/api/remove-member`);
+        console.log(`家庭组账号: ${familyAccount}`);
+        console.log(`踢出成员: ${memberEmail}`);
+
+        const response = await fetch(`${localApiUrl}/api/remove-member`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                family_account: familyAccount,
+                member_email: memberEmail,
+                password: account.password || ''  // 传递密码用于验证
+            })
+        });
+
+        const result = await response.json();
+        console.log('API 响应:', result);
+
+        if (result.success) {
+            statusDiv.textContent = `✅ ${result.message || '踢出成功!'}`;
+            statusDiv.style.color = '#10b981';
+            showToast('✅ 踢出成功!', 'success');
+        } else {
+            statusDiv.textContent = `❌ ${result.error || '踢出失败'}`;
+            statusDiv.style.color = '#ef4444';
+            showToast(`❌ 踢出失败: ${result.error}`, 'error');
+        }
+    } catch (error) {
+        console.error('自动踢出错误:', error);
+        let errorMessage = error.message;
+        if (error.message.includes('Failed to fetch')) {
+            errorMessage = '无法连接本地 API 服务，请确保服务已启动';
+        }
+        statusDiv.textContent = `❌ ${errorMessage}`;
+        statusDiv.style.color = '#ef4444';
+        showToast(`❌ 连接失败: ${errorMessage}`, 'error');
+    } finally {
+        if (autoRemoveBtn) {
+            autoRemoveBtn.disabled = false;
+            autoRemoveBtn.textContent = '自动踢出';
+        }
+    }
+}
+
+// 暴露设置函数到全局
+window.setLocalApiUrl = setLocalApiUrl;
+window.getLocalApiUrl = getLocalApiUrl;
+window.autoSendInvite = autoSendInvite;
+window.autoRemoveMember = autoRemoveMember;
+
+// ===== API 设置弹窗功能 =====
+function openApiSettingModal() {
+    const modal = document.getElementById('api-setting-modal');
+    const input = document.getElementById('api-url-input');
+    const status = document.getElementById('api-status');
+
+    // 加载当前配置
+    const currentUrl = getLocalApiUrl();
+    input.value = currentUrl === 'http://localhost:8090' ? '' : currentUrl;
+
+    // 更新状态显示
+    if (currentUrl && currentUrl !== 'http://localhost:8090') {
+        status.textContent = `已配置: ${currentUrl}`;
+        status.style.color = '#10b981';
+        status.style.background = 'rgba(16, 185, 129, 0.1)';
+    } else {
+        status.textContent = '未配置，使用默认本地地址 (localhost:8090)';
+        status.style.color = '#f59e0b';
+        status.style.background = 'rgba(245, 158, 11, 0.1)';
+    }
+
+    modal.classList.add('active');
+}
+
+function closeApiSettingModal() {
+    document.getElementById('api-setting-modal').classList.remove('active');
+}
+
+function saveApiSetting() {
+    const input = document.getElementById('api-url-input');
+    let url = input.value.trim();
+
+    if (!url) {
+        url = 'http://localhost:8090';
+    }
+
+    // 移除末尾的斜杠
+    url = url.replace(/\/+$/, '');
+
+    setLocalApiUrl(url);
+    closeApiSettingModal();
+
+    // 刷新页面
+    location.reload();
+}
+
+async function testApiConnection() {
+    const input = document.getElementById('api-url-input');
+    const status = document.getElementById('api-status');
+    let url = input.value.trim() || 'http://localhost:8090';
+    url = url.replace(/\/+$/, '');
+
+    status.textContent = '正在测试连接...';
+    status.style.color = '#f59e0b';
+
+    try {
+        const response = await fetch(`${url}/api/health`, {
+            method: 'GET',
+            headers: { 'Content-Type': 'application/json' }
+        });
+
+        const data = await response.json();
+
+        if (data.status === 'ok') {
+            status.textContent = `连接成功! ${data.message || ''}`;
+            status.style.color = '#10b981';
+            showToast('API 连接成功!', 'success');
+        } else {
+            status.textContent = '连接失败: 无效响应';
+            status.style.color = '#ef4444';
+        }
+    } catch (error) {
+        status.textContent = `连接失败: ${error.message}`;
+        status.style.color = '#ef4444';
+        showToast('API 连接失败', 'error');
+    }
+}
+
+// 暴露弹窗函数到全局
+window.openApiSettingModal = openApiSettingModal;
+window.closeApiSettingModal = closeApiSettingModal;
+window.saveApiSetting = saveApiSetting;
+window.testApiConnection = testApiConnection;
+
+// ===== 编辑账号功能 =====
+let currentEditAccountId = null;
+
+function openEditModal(accountId) {
+    const account = accounts.find(a => a.id === accountId);
+    if (!account) {
+        showToast('未找到账号信息', 'error');
+        return;
+    }
+
+    currentEditAccountId = accountId;
+
+    // 填充表单
+    document.getElementById('edit-email').value = account.email;
+    document.getElementById('edit-password').value = account.password;
+    document.getElementById('edit-backup-email').value = account.backup_email || '';
+    document.getElementById('edit-twofa').value = account.twofa_secret || '';
+    document.getElementById('edit-batch-tag').value = account.batch_tag || '';
+
+    document.getElementById('edit-modal').classList.add('active');
+}
+
+function closeEditModal() {
+    document.getElementById('edit-modal').classList.remove('active');
+    currentEditAccountId = null;
+}
+
+async function confirmEdit() {
+    if (!currentEditAccountId) return;
+
+    const password = document.getElementById('edit-password').value.trim();
+    const backupEmail = document.getElementById('edit-backup-email').value.trim();
+    const twofaSecret = document.getElementById('edit-twofa').value.trim();
+    const batchTag = document.getElementById('edit-batch-tag').value.trim();
+
+    if (!password) {
+        showToast('密码不能为空', 'error');
+        return;
+    }
+
+    showToast('正在保存...', 'success');
+
+    try {
+        const response = await fetch(`${API_BASE_URL}/api/accounts/${currentEditAccountId}`, {
+            method: 'PATCH',
+            headers: getAuthHeaders(),
+            body: JSON.stringify({
+                action: 'editAccount',
+                password,
+                backupEmail,
+                twofaSecret,
+                batchTag
+            })
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            showToast('保存成功', 'success');
+            closeEditModal();
+            loadAccounts();
+        } else {
+            showToast('保存失败: ' + (data.error || '未知错误'), 'error');
+        }
+    } catch (error) {
+        showToast('网络错误: ' + error.message, 'error');
+    }
+}
+
+// 暴露编辑函数到全局
+window.openEditModal = openEditModal;
+window.closeEditModal = closeEditModal;
+window.confirmEdit = confirmEdit;
 
 function initNotifications() {
     // 初始检查
@@ -1278,20 +2124,19 @@ function openNotificationModal() {
             const isExpired = notification.status === 'expired';
             const statusClass = isExpired ? 'expired' : 'expiring';
             const statusText = notification.statusText || (isExpired ? '已到期' : '即将到期');
-            const statusIcon = isExpired ? '🔴' : '🟡';
 
             html += `
                 <div class="notification-item ${statusClass}">
                     <div class="notification-item-header">
-                        <span class="notification-item-account">📧 ${notification.accountEmail}</span>
-                        <span class="notification-status-badge ${statusClass}">${statusIcon} ${statusText}</span>
+                        <span class="notification-item-account">${notification.accountEmail}</span>
+                        <span class="notification-status-badge ${statusClass}">${statusText}</span>
                     </div>
-                    <div class="notification-item-slot">🚗 车位 ${notification.slotIndex + 1}</div>
-                    <div class="notification-item-buyer">👤 买家: ${notification.buyer}</div>
+                    <div class="notification-item-slot">车位 ${notification.slotIndex + 1}</div>
+                    <div class="notification-item-buyer">买家: ${notification.buyer}</div>
                     <div class="notification-item-time">
-                        ⏰ 到期时间: ${expiresAt.toLocaleString()}
+                        到期时间: ${expiresAt.toLocaleString()}
                         ${notification.expireDays ? ` (${notification.expireDays}天)` : ''}<br>
-                        📅 上车时间: ${assignedAt.toLocaleString()}
+                        上车时间: ${assignedAt.toLocaleString()}
                     </div>
                 </div>
             `;

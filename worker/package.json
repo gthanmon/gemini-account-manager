@@ -1,18 +1,14 @@
 {
-    "name": "account-manager-worker",
-    "version": "1.0.0",
-    "description": "Account Manager Pro - Cloudflare Worker Backend",
-    "main": "src/index.js",
-    "type": "module",
-    "scripts": {
-        "dev": "wrangler dev",
-        "deploy": "wrangler deploy"
-    },
-    "keywords": [
-        "cloudflare",
-        "worker",
-        "account-manager"
-    ],
-    "author": "",
-    "license": "MIT"
+  "name": "account-manager-worker",
+  "version": "1.0.0",
+  "description": "Account Manager Pro - Cloudflare Worker Backend",
+  "main": "src/index.js",
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy"
+  },
+  "keywords": ["cloudflare", "worker", "account-manager"],
+  "author": "",
+  "license": "MIT"
 }

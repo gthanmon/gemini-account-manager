@@ -51,8 +51,17 @@ export async function handleUpdate(request, env, accountId, currentUser) {
             case 'cancelSold':
                 return await cancelSold(env, accountId);
 
+            case 'updateSoldInfo':
+                return await updateSoldInfo(env, accountId, data);
+
+            case 'renewSlot':
+                return await renewSlot(env, accountId, data);
+
             case 'getTOTP':
                 return await getTOTP(env, accountId);
+
+            case 'editAccount':
+                return await editAccount(env, accountId, data);
 
             default:
                 return new Response(JSON.stringify({ error: '未知的操作类型' }), {
@@ -123,7 +132,7 @@ async function convertToPersonal(env, accountId) {
 
 // 更新车位
 async function updateSlot(env, accountId, data) {
-    const { slotIndex, slotAction, buyer, order, price, expireDays } = data;
+    const { slotIndex, slotAction, buyer, order, price, expireDays, buyerSource } = data;
 
     // 获取当前账号
     const account = await env.DB.prepare(
@@ -159,6 +168,7 @@ async function updateSlot(env, accountId, data) {
 
         slots[slotIndex] = {
             buyer,
+            buyerSource: buyerSource || null,
             order: order || null,
             price: price || null,
             assignedAt: new Date().toISOString(),
@@ -217,7 +227,7 @@ async function updateStatus(env, accountId, status, banReason = null) {
 
 // 标记个人号为已售出
 async function sellPersonal(env, accountId, data) {
-    const { buyerName, buyerOrder, buyerPrice } = data;
+    const { buyerName, buyerSource, buyerOrder, buyerPrice } = data;
 
     if (!buyerName) {
         return new Response(JSON.stringify({ error: '买家昵称不能为空' }), {
@@ -248,8 +258,8 @@ async function sellPersonal(env, accountId, data) {
     // 更新为已售出状态并保存买家信息
     const soldAt = new Date().toISOString();
     await env.DB.prepare(
-        'UPDATE accounts SET status = ?, buyer_name = ?, buyer_order = ?, buyer_price = ?, sold_at = ? WHERE id = ?'
-    ).bind('SOLD', buyerName, buyerOrder || null, buyerPrice || null, soldAt, accountId).run();
+        'UPDATE accounts SET status = ?, buyer_name = ?, buyer_source = ?, buyer_order = ?, buyer_price = ?, sold_at = ? WHERE id = ?'
+    ).bind('SOLD', buyerName, buyerSource || null, buyerOrder || null, buyerPrice || null, soldAt, accountId).run();
 
     return new Response(JSON.stringify({ success: true }), {
         status: 200,
@@ -310,6 +320,159 @@ async function cancelSold(env, accountId) {
     await env.DB.prepare(
         'UPDATE accounts SET status = ?, buyer_name = NULL, buyer_order = NULL, buyer_price = NULL, sold_at = NULL WHERE id = ?'
     ).bind('ACTIVE', accountId).run();
+
+    return new Response(JSON.stringify({ success: true }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' }
+    });
+}
+
+// 更新售出信息
+async function updateSoldInfo(env, accountId, data) {
+    const { buyerName, buyerSource, buyerPrice } = data;
+
+    if (!buyerName) {
+        return new Response(JSON.stringify({ error: '买家昵称不能为空' }), {
+            status: 400,
+            headers: { 'Content-Type': 'application/json' }
+        });
+    }
+
+    // 检查账号是否存在且为已售出状态
+    const account = await env.DB.prepare(
+        'SELECT status FROM accounts WHERE id = ?'
+    ).bind(accountId).first();
+
+    if (!account) {
+        return new Response(JSON.stringify({ error: '账号不存在' }), {
+            status: 404,
+            headers: { 'Content-Type': 'application/json' }
+        });
+    }
+
+    if (account.status !== 'SOLD') {
+        return new Response(JSON.stringify({ error: '该账号未处于已售出状态' }), {
+            status: 400,
+            headers: { 'Content-Type': 'application/json' }
+        });
+    }
+
+    // 更新售出信息
+    await env.DB.prepare(
+        'UPDATE accounts SET buyer_name = ?, buyer_source = ?, buyer_price = ? WHERE id = ?'
+    ).bind(buyerName, buyerSource || null, buyerPrice || null, accountId).run();
+
+    return new Response(JSON.stringify({ success: true }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' }
+    });
+}
+
+// 续费车位
+async function renewSlot(env, accountId, data) {
+    const { slotIndex, renewDays } = data;
+
+    // 获取当前账号
+    const account = await env.DB.prepare(
+        'SELECT * FROM accounts WHERE id = ?'
+    ).bind(accountId).first();
+
+    if (!account) {
+        return new Response(JSON.stringify({ error: '账号不存在' }), {
+            status: 404,
+            headers: { 'Content-Type': 'application/json' }
+        });
+    }
+
+    const slots = JSON.parse(account.slots || '[]');
+
+    if (slotIndex < 0 || slotIndex >= 5) {
+        return new Response(JSON.stringify({ error: '车位索引无效' }), {
+            status: 400,
+            headers: { 'Content-Type': 'application/json' }
+        });
+    }
+
+    const slot = slots[slotIndex];
+    if (!slot) {
+        return new Response(JSON.stringify({ error: '该车位未被占用' }), {
+            status: 400,
+            headers: { 'Content-Type': 'application/json' }
+        });
+    }
+
+    const days = parseInt(renewDays);
+    if (isNaN(days) || days <= 0) {
+        return new Response(JSON.stringify({ error: '续费天数无效' }), {
+            status: 400,
+            headers: { 'Content-Type': 'application/json' }
+        });
+    }
+
+    // 计算新的到期时间（从当前到期时间或现在开始）
+    let baseDate;
+    if (slot.expiresAt) {
+        baseDate = new Date(slot.expiresAt);
+        // 如果已经过期，从现在开始算
+        if (baseDate < new Date()) {
+            baseDate = new Date();
+        }
+    } else {
+        baseDate = new Date();
+    }
+
+    baseDate.setDate(baseDate.getDate() + days);
+    slot.expiresAt = baseDate.toISOString();
+
+    // 更新天数记录
+    slot.expireDays = (slot.expireDays || 0) + days;
+
+    slots[slotIndex] = slot;
+
+    // 更新数据库
+    await env.DB.prepare(
+        'UPDATE accounts SET slots = ? WHERE id = ?'
+    ).bind(JSON.stringify(slots), accountId).run();
+
+    return new Response(JSON.stringify({ success: true }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' }
+    });
+}
+
+// 编辑账号信息
+async function editAccount(env, accountId, data) {
+    const { password, backupEmail, twofaSecret, batchTag } = data;
+
+    if (!password) {
+        return new Response(JSON.stringify({ error: '密码不能为空' }), {
+            status: 400,
+            headers: { 'Content-Type': 'application/json' }
+        });
+    }
+
+    // 检查账号是否存在
+    const account = await env.DB.prepare(
+        'SELECT id FROM accounts WHERE id = ?'
+    ).bind(accountId).first();
+
+    if (!account) {
+        return new Response(JSON.stringify({ error: '账号不存在' }), {
+            status: 404,
+            headers: { 'Content-Type': 'application/json' }
+        });
+    }
+
+    // 更新账号信息
+    await env.DB.prepare(
+        'UPDATE accounts SET password = ?, backup_email = ?, twofa_secret = ?, batch_tag = ? WHERE id = ?'
+    ).bind(
+        password,
+        backupEmail || null,
+        twofaSecret || null,
+        batchTag || null,
+        accountId
+    ).run();
 
     return new Response(JSON.stringify({ success: true }), {
         status: 200,

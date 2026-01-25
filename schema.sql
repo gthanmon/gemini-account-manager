@@ -1,6 +1,5 @@
--- Account Manager Pro - 完整数据库初始化脚本
--- 创建时间: 2026-01-17
--- 说明: 此文件包含所有表结构、索引和触发器
+-- Account Manager Pro - D1 数据库表结构
+-- 创建时间: 2024-01-16
 
 -- 用户表
 CREATE TABLE IF NOT EXISTS users (
@@ -24,6 +23,7 @@ CREATE TABLE IF NOT EXISTS accounts (
     batch_tag TEXT,
     user_id INTEGER NOT NULL,
     buyer_name TEXT,
+    buyer_source TEXT,
     buyer_order TEXT,
     buyer_price TEXT,
     sold_at DATETIME,
