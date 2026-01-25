@@ -136,7 +136,7 @@ wrangler pages deploy . --project-name=account-manager
 
 ## 🤖 本地 API 部署（可选）
 
-本地 API 用于实现自动化功能（自动发送邀请、踢出成员等），需要配合 [VirtualBrowser](https://www.virtualbrowser.cn/) 使用。
+本地 API 用于实现自动化功能（自动发送邀请、踢出成员等），需要配合 [VirtualBrowser](https://virtualbrowser.cc/) 使用。
 
 ### 前置要求
 
