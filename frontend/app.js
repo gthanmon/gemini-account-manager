@@ -141,14 +141,15 @@ function initImport() {
                 }
 
                 resultDiv.innerHTML = `
-          <div style="color: var(--secondary); font-size: 1.1rem; margin-bottom: 1rem;">
-            ✅ 导入成功!
+          <div style="color: var(--color-success); font-size: 1.1rem; margin-bottom: 1rem; display: flex; align-items: center; gap: 8px;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="m9 11 3 3L22 4"/></svg>
+            导入成功!
           </div>
-          <div style="color: var(--text-secondary);">
-            <p>📊 总计: ${data.total} 条</p>
-            <p>✅ 成功: ${data.successCount} 条</p>
-            <p>⏭️ 跳过(重复): ${data.skipCount} 条</p>
-            ${data.errors ? `<p style="color: var(--danger);">❌ 错误: ${data.errors.length} 条</p>` : ''}
+          <div style="color: var(--color-text-secondary); display: flex; flex-direction: column; gap: 6px;">
+            <p style="display: flex; align-items: center; gap: 6px; margin: 0;"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--color-info)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" x2="12" y1="20" y2="10"/><line x1="18" x2="18" y1="20" y2="4"/><line x1="6" x2="6" y1="20" y2="16"/></svg> 总计: ${data.total} 条</p>
+            <p style="display: flex; align-items: center; gap: 6px; margin: 0;"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--color-success)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg> 成功: ${data.successCount} 条</p>
+            <p style="display: flex; align-items: center; gap: 6px; margin: 0;"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--color-warning)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg> 跳过(重复): ${data.skipCount} 条</p>
+            ${data.errors ? `<p style="color: var(--color-danger); display: flex; align-items: center; gap: 6px; margin: 0;"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="m15 9-6 6"/><path d="m9 9 6 6"/></svg> 错误: ${data.errors.length} 条</p>` : ''}
           </div>
           ${errorDetails}
         `;
@@ -156,11 +157,11 @@ function initImport() {
                 showToast(`成功导入 ${data.successCount} 个账号`, 'success');
                 loadStats(); // 刷新统计
             } else {
-                resultDiv.innerHTML = `<div style="color: var(--danger);">❌ ${data.error}</div>`;
+                resultDiv.innerHTML = `<div style="color: var(--danger);">${data.error}</div>`;
                 showToast(data.error, 'error');
             }
         } catch (error) {
-            resultDiv.innerHTML = `<div style="color: var(--danger);">❌ 网络错误: ${error.message}</div>`;
+            resultDiv.innerHTML = `<div style="color: var(--danger);">网络错误: ${error.message}</div>`;
             showToast('导入失败,请检查网络连接', 'error');
         } finally {
             importBtn.disabled = false;
@@ -399,12 +400,7 @@ function createAccountCard(account) {
           <span class="account-status status-banned" style="font-size: 0.75rem; max-width: 120px; text-align: right; white-space: normal; line-height: 1.3;">
             ${account.ban_reason}
           </span>
-        ` : `
-          <span class="account-status status-${account.status.toLowerCase()}"
-            ${account.status === 'SOLD' ? 'data-cancel-sold="true" style="cursor: pointer;" title="点击取消售出"' : ''}>
-            ${statusMap[account.status]}
-          </span>
-        `}
+        ` : ''}
       </div>
     </div>
 
@@ -413,14 +409,14 @@ function createAccountCard(account) {
         <span class="info-label">账号</span>
         <span class="info-value">
           ${account.email}
-          <button class="copy-btn" onclick="copyText('${account.email}')" title="复制"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg></button>
+          <button class="copy-btn" onclick="copyAccountField(${account.id}, 'email')" title="复制"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg></button>
         </span>
       </div>
       <div class="info-row">
         <span class="info-label">密码</span>
         <span class="info-value">
           ${maskPassword(account.password)}
-          <button class="copy-btn" onclick="copyText('${account.password}')" title="复制"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg></button>
+          <button class="copy-btn" onclick="copyAccountField(${account.id}, 'password')" title="复制"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg></button>
         </span>
       </div>
       ${account.backup_email ? `
@@ -428,7 +424,7 @@ function createAccountCard(account) {
           <span class="info-label">辅邮</span>
           <span class="info-value">
             ${truncateEmail(account.backup_email)}
-            <button class="copy-btn" onclick="copyText('${account.backup_email}')" title="复制"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg></button>
+            <button class="copy-btn" onclick="copyAccountField(${account.id}, 'backup_email')" title="复制"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg></button>
           </span>
         </div>
       ` : ''}
@@ -478,7 +474,7 @@ function createAccountCard(account) {
       </div>
     ` : ''}
 
-    <div class="account-actions${account.status === 'SOLD' ? ' sold-actions' : ''}">
+    <div class="account-actions${account.status === 'SOLD' ? ' sold-actions' : ''}${account.status === 'BANNED' ? ' banned-actions' : ''}">
       <button class="action-btn" onclick="copyFullAccount(${account.id})">
         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M10 9H8"/><path d="M16 13H8"/><path d="M16 17H8"/></svg>
         复制全部
@@ -912,15 +908,15 @@ async function convertToFamily(accountId) {
         console.log('convertToFamily response:', data);
 
         if (data.success) {
-            showToast('✅ 已转换为家庭组!请切换到"家庭组"标签查看', 'success');
+            showToast('已转换为家庭组!请切换到"家庭组"标签查看', 'success');
             loadAccounts();
             loadStats();
         } else {
-            showToast('❌ 转换失败: ' + (data.error || '未知错误'), 'error');
+            showToast('转换失败: ' + (data.error || '未知错误'), 'error');
         }
     } catch (error) {
         console.error('convertToFamily error:', error);
-        showToast('❌ 网络错误: ' + error.message, 'error');
+        showToast('网络错误: ' + error.message, 'error');
     }
 }
 
@@ -941,15 +937,15 @@ async function convertToPersonal(accountId) {
         console.log('convertToPersonal response:', data);
 
         if (data.success) {
-            showToast('✅ 已还原为个人号!', 'success');
+            showToast('已还原为个人号!', 'success');
             loadAccounts();
             loadStats();
         } else {
-            showToast('❌ 还原失败: ' + (data.error || '未知错误'), 'error');
+            showToast('还原失败: ' + (data.error || '未知错误'), 'error');
         }
     } catch (error) {
         console.error('convertToPersonal error:', error);
-        showToast('❌ 网络错误: ' + error.message, 'error');
+        showToast('网络错误: ' + error.message, 'error');
     }
 }
 
@@ -960,14 +956,14 @@ async function enableFamilyGroup(accountId) {
     // 获取账号信息
     const account = accounts.find(acc => acc.id === accountId);
     if (!account) {
-        showToast('❌ 未找到账号信息', 'error');
+        showToast('未找到账号信息', 'error');
         return;
     }
 
     showToast('🔄 正在创建家庭组...', 'success');
 
     try {
-        const localApiUrl = localStorage.getItem('localApiUrl') || 'http://localhost:8090';
+        const localApiUrl = getLocalApiUrl();
         const response = await fetch(`${localApiUrl}/api/enable-family`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -980,13 +976,13 @@ async function enableFamilyGroup(accountId) {
         console.log('enableFamilyGroup response:', data);
 
         if (data.success) {
-            showToast('✅ 家庭组创建成功！', 'success');
+            showToast('家庭组创建成功！', 'success');
         } else {
-            showToast('❌ 创建失败: ' + (data.error || '未知错误'), 'error');
+            showToast('创建失败: ' + (data.error || '未知错误'), 'error');
         }
     } catch (error) {
         console.error('enableFamilyGroup error:', error);
-        showToast('❌ 网络错误: ' + error.message, 'error');
+        showToast('网络错误: ' + error.message, 'error');
     }
 }
 
@@ -999,7 +995,7 @@ function deletePayment(accountId) {
     // 获取账号信息
     const account = accounts.find(acc => acc.id === accountId);
     if (!account) {
-        showToast('❌ 未找到账号信息', 'error');
+        showToast('未找到账号信息', 'error');
         return;
     }
 
@@ -1033,7 +1029,7 @@ async function confirmDeletePayment() {
 
     const account = accounts.find(acc => acc.id === currentDeletePaymentAccountId);
     if (!account) {
-        showToast('❌ 未找到账号信息', 'error');
+        showToast('未找到账号信息', 'error');
         closeDeletePaymentModal();
         return;
     }
@@ -1051,7 +1047,7 @@ async function confirmDeletePayment() {
     confirmBtn.textContent = '处理中...';
 
     try {
-        const localApiUrl = localStorage.getItem('localApiUrl') || 'http://localhost:8090';
+        const localApiUrl = getLocalApiUrl();
         const response = await fetch(`${localApiUrl}/api/delete-payment`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -1066,29 +1062,29 @@ async function confirmDeletePayment() {
         console.log('deletePayment response:', data);
 
         if (data.success) {
-            statusDiv.textContent = '✅ 支付资料删除成功！';
+            statusDiv.textContent = '支付资料删除成功！';
             statusDiv.style.color = '#10b981';
             statusDiv.style.background = 'rgba(16, 185, 129, 0.1)';
-            showToast('✅ 支付资料删除成功！', 'success');
+            showToast('支付资料删除成功！', 'success');
 
             // 1.5秒后关闭弹窗
             setTimeout(() => {
                 closeDeletePaymentModal();
             }, 1500);
         } else {
-            statusDiv.textContent = '❌ 删除失败: ' + (data.error || '未知错误');
+            statusDiv.textContent = '删除失败: ' + (data.error || '未知错误');
             statusDiv.style.color = '#ef4444';
             statusDiv.style.background = 'rgba(239, 68, 68, 0.1)';
-            showToast('❌ 删除失败: ' + (data.error || '未知错误'), 'error');
+            showToast('删除失败: ' + (data.error || '未知错误'), 'error');
             confirmBtn.disabled = false;
             confirmBtn.textContent = '重试';
         }
     } catch (error) {
         console.error('deletePayment error:', error);
-        statusDiv.textContent = '❌ 网络错误: ' + error.message;
+        statusDiv.textContent = '网络错误: ' + error.message;
         statusDiv.style.color = '#ef4444';
         statusDiv.style.background = 'rgba(239, 68, 68, 0.1)';
-        showToast('❌ 网络错误: ' + error.message, 'error');
+        showToast('网络错误: ' + error.message, 'error');
         confirmBtn.disabled = false;
         confirmBtn.textContent = '重试';
     }
@@ -1122,7 +1118,7 @@ async function confirmBan() {
     const banNote = document.getElementById('ban-note').value.trim();
 
     if (!banReason) {
-        showToast('❌ 请输入封禁原因', 'error');
+        showToast('请输入封禁原因', 'error');
         return;
     }
 
@@ -1145,16 +1141,16 @@ async function confirmBan() {
         const data = await response.json();
 
         if (data.success) {
-            showToast('✅ 已标记为异常', 'success');
+            showToast('已标记为异常', 'success');
             closeBanModal();
             loadAccounts();
             loadStats();
         } else {
-            showToast('❌ 操作失败: ' + (data.error || '未知错误'), 'error');
+            showToast('操作失败: ' + (data.error || '未知错误'), 'error');
         }
     } catch (error) {
         console.error('confirmBan error:', error);
-        showToast('❌ 网络错误: ' + error.message, 'error');
+        showToast('网络错误: ' + error.message, 'error');
     }
 }
 
@@ -1176,15 +1172,15 @@ function cancelBanned(accountId) {
             const data = await response.json();
 
             if (data.success) {
-                showToast('✅ 已取消异常，账号已恢复为库存', 'success');
+                showToast('已取消异常，账号已恢复为库存', 'success');
                 loadAccounts();
                 loadStats();
             } else {
-                showToast('❌ 操作失败: ' + (data.error || '未知错误'), 'error');
+                showToast('操作失败: ' + (data.error || '未知错误'), 'error');
             }
         } catch (error) {
             console.error('cancelBanned error:', error);
-            showToast('❌ 网络错误: ' + error.message, 'error');
+            showToast('网络错误: ' + error.message, 'error');
         }
     });
 }
@@ -1205,7 +1201,7 @@ function openSellModal(accountId) {
         console.log('Sell modal opened successfully');
     } catch (error) {
         console.error('Error opening sell modal:', error);
-        showToast('❌ 打开售出弹窗失败', 'error');
+        showToast('打开售出弹窗失败', 'error');
     }
 }
 
@@ -1228,7 +1224,7 @@ async function confirmSell() {
     console.log('confirmSell called:', { accountId: currentSellAccountId, buyerName, buyerSource, buyerOrder, buyerPrice });
 
     if (!buyerName) {
-        showToast('❌ 请输入买家昵称', 'error');
+        showToast('请输入买家昵称', 'error');
         return;
     }
 
@@ -1251,16 +1247,16 @@ async function confirmSell() {
         console.log('confirmSell response:', data);
 
         if (data.success) {
-            showToast('✅ 标记为已售出成功!', 'success');
+            showToast('标记为已售出成功!', 'success');
             closeSellModal();
             loadAccounts();
             loadStats();
         } else {
-            showToast('❌ 操作失败: ' + (data.error || '未知错误'), 'error');
+            showToast('操作失败: ' + (data.error || '未知错误'), 'error');
         }
     } catch (error) {
         console.error('confirmSell error:', error);
-        showToast('❌ 网络错误: ' + error.message, 'error');
+        showToast('网络错误: ' + error.message, 'error');
     }
 }
 
@@ -1291,7 +1287,7 @@ async function confirmEditSold() {
     const buyerPrice = document.getElementById('edit-sold-price').value.trim();
 
     if (!buyerName) {
-        showToast('❌ 请输入买家昵称', 'error');
+        showToast('请输入买家昵称', 'error');
         return;
     }
 
@@ -1309,14 +1305,14 @@ async function confirmEditSold() {
 
         const data = await response.json();
         if (data.success) {
-            showToast('✅ 售出信息已更新', 'success');
+            showToast('售出信息已更新', 'success');
             closeEditSoldModal();
             loadAccounts();
         } else {
-            showToast('❌ 更新失败: ' + (data.error || '未知错误'), 'error');
+            showToast('更新失败: ' + (data.error || '未知错误'), 'error');
         }
     } catch (error) {
-        showToast('❌ 网络错误: ' + error.message, 'error');
+        showToast('网络错误: ' + error.message, 'error');
     }
 }
 
@@ -1360,14 +1356,14 @@ async function cancelSold(accountId) {
 
             const data = await response.json();
             if (data.success) {
-                showToast('✅ 已取消售出，账号已恢复为库存', 'success');
+                showToast('已取消售出，账号已恢复为库存', 'success');
                 loadAccounts();
                 loadStats();
             } else {
-                showToast('❌ 操作失败: ' + (data.error || '未知错误'), 'error');
+                showToast('操作失败: ' + (data.error || '未知错误'), 'error');
             }
         } catch (error) {
-            showToast('❌ 网络错误: ' + error.message, 'error');
+            showToast('网络错误: ' + error.message, 'error');
         }
     });
 }
@@ -1499,21 +1495,36 @@ async function confirmCancelSold() {
         const data = await response.json();
 
         if (data.success) {
-            showToast('✅ 已取消售出,账号已恢复为库存状态', 'success');
+            showToast('已取消售出,账号已恢复为库存状态', 'success');
             loadAccounts();
             loadStats();
         } else {
-            showToast('❌ 取消失败: ' + (data.error || '未知错误'), 'error');
+            showToast('取消失败: ' + (data.error || '未知错误'), 'error');
         }
     } catch (error) {
         console.error('cancelSold error:', error);
-        showToast('❌ 网络错误: ' + error.message, 'error');
+        showToast('网络错误: ' + error.message, 'error');
     } finally {
         currentCancelSoldAccountId = null;
     }
 }
 
 // ===== 工具函数 =====
+// 通过账号ID复制指定字段（避免在HTML中嵌入特殊字符）
+function copyAccountField(accountId, field) {
+    const account = accounts.find(a => a.id === accountId);
+    if (!account) {
+        showToast('未找到账号', 'error');
+        return;
+    }
+    const value = account[field];
+    if (value) {
+        copyText(value);
+    } else {
+        showToast('该字段为空', 'error');
+    }
+}
+
 function maskPassword(password) {
     if (password.length <= 4) return '****';
     return password.substring(0, 2) + '****' + password.substring(password.length - 2);
@@ -1554,15 +1565,15 @@ async function deleteAccount(accountId) {
             const data = await response.json();
 
             if (data.success) {
-                showToast('✅ 账号已删除', 'success');
+                showToast('账号已删除', 'success');
                 loadAccounts();
                 loadStats();
             } else {
-                showToast('❌ 删除失败: ' + (data.error || '未知错误'), 'error');
+                showToast('删除失败: ' + (data.error || '未知错误'), 'error');
             }
         } catch (error) {
             console.error('deleteAccount error:', error);
-            showToast('❌ 网络错误: ' + error.message, 'error');
+            showToast('网络错误: ' + error.message, 'error');
         }
     });
 }
@@ -1615,7 +1626,7 @@ function initBatchControls() {
         });
 
         copyText(exportText.trim());
-        showToast(`✅ 已复制 ${selectedAccountIds.size} 个账号到剪贴板`, 'success');
+        showToast(`已复制 ${selectedAccountIds.size} 个账号到剪贴板`, 'success');
     });
 
     // 批量删除
@@ -1716,37 +1727,37 @@ function setLocalApiUrl(url) {
         console.log('[DEBUG] 正在保存 API 地址:', url);
         localStorage.setItem('localApiUrl', url);
         console.log('[DEBUG] 保存成功，验证:', localStorage.getItem('localApiUrl'));
-        showToast('✅ 本地 API 地址已保存', 'success');
+        showToast('本地 API 地址已保存', 'success');
     } catch (e) {
         console.error('[DEBUG] localStorage 保存失败:', e);
-        showToast('❌ 保存失败: ' + e.message, 'error');
+        showToast('保存失败: ' + e.message, 'error');
     }
 }
 
 // 自动发送邀请
 async function autoSendInvite() {
     if (!currentSlotEdit) {
-        showToast('❌ 请先选择一个车位', 'error');
+        showToast('请先选择一个车位', 'error');
         return;
     }
 
     const inviteEmail = document.getElementById('invite-email').value.trim();
     if (!inviteEmail) {
-        showToast('❌ 请输入邀请邮箱', 'error');
+        showToast('请输入邀请邮箱', 'error');
         return;
     }
 
     // 验证邮箱格式
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(inviteEmail)) {
-        showToast('❌ 请输入有效的邮箱地址', 'error');
+        showToast('请输入有效的邮箱地址', 'error');
         return;
     }
 
     // 获取当前家庭组账号信息
     const account = accounts.find(acc => acc.id === currentSlotEdit.accountId);
     if (!account) {
-        showToast('❌ 未找到账号信息', 'error');
+        showToast('未找到账号信息', 'error');
         return;
     }
 
@@ -1784,9 +1795,9 @@ async function autoSendInvite() {
         console.log('API 响应:', result);
 
         if (result.success) {
-            statusDiv.textContent = `✅ ${result.message || '邀请发送成功!'}`;
+            statusDiv.textContent = `${result.message || '邀请发送成功!'}`;
             statusDiv.style.color = '#10b981';
-            showToast('✅ 邀请发送成功!', 'success');
+            showToast('邀请发送成功!', 'success');
 
             // 自动填写买家信息（如果为空）
             const buyerInput = document.getElementById('buyer-name');
@@ -1794,9 +1805,9 @@ async function autoSendInvite() {
                 buyerInput.value = inviteEmail.split('@')[0];
             }
         } else {
-            statusDiv.textContent = `❌ ${result.error || '发送失败'}`;
+            statusDiv.textContent = `${result.error || '发送失败'}`;
             statusDiv.style.color = '#ef4444';
-            showToast(`❌ 发送失败: ${result.error}`, 'error');
+            showToast(`发送失败: ${result.error}`, 'error');
         }
     } catch (error) {
         console.error('自动邀请错误:', error);
@@ -1804,12 +1815,12 @@ async function autoSendInvite() {
         if (error.message.includes('Failed to fetch')) {
             errorMessage = '无法连接本地 API 服务，请确保服务已启动';
         }
-        statusDiv.textContent = `❌ ${errorMessage}`;
+        statusDiv.textContent = `${errorMessage}`;
         statusDiv.style.color = '#ef4444';
-        showToast(`❌ 连接失败: ${errorMessage}`, 'error');
+        showToast(`连接失败: ${errorMessage}`, 'error');
     } finally {
         autoInviteBtn.disabled = false;
-        autoInviteBtn.textContent = '自动发送邀请';
+        autoInviteBtn.textContent = '发送邀请';
     }
 }
 
@@ -1819,7 +1830,7 @@ async function autoRemoveMember() {
     console.log('[DEBUG autoRemoveMember] currentSlotEdit =', currentSlotEdit);
 
     if (!currentSlotEdit) {
-        showToast('❌ 请先选择一个车位', 'error');
+        showToast('请先选择一个车位', 'error');
         return;
     }
 
@@ -1828,14 +1839,14 @@ async function autoRemoveMember() {
     console.log('[DEBUG autoRemoveMember] slot.order =', currentSlotEdit.slot?.order);
 
     if (!memberEmail) {
-        showToast('❌ 没有成员邮箱信息', 'error');
+        showToast('没有成员邮箱信息', 'error');
         return;
     }
 
     // 获取当前家庭组账号信息
     const account = accounts.find(acc => acc.id === currentSlotEdit.accountId);
     if (!account) {
-        showToast('❌ 未找到账号信息', 'error');
+        showToast('未找到账号信息', 'error');
         return;
     }
 
@@ -1876,13 +1887,13 @@ async function autoRemoveMember() {
         console.log('API 响应:', result);
 
         if (result.success) {
-            statusDiv.textContent = `✅ ${result.message || '踢出成功!'}`;
+            statusDiv.textContent = `${result.message || '踢出成功!'}`;
             statusDiv.style.color = '#10b981';
-            showToast('✅ 踢出成功!', 'success');
+            showToast('踢出成功!', 'success');
         } else {
-            statusDiv.textContent = `❌ ${result.error || '踢出失败'}`;
+            statusDiv.textContent = `${result.error || '踢出失败'}`;
             statusDiv.style.color = '#ef4444';
-            showToast(`❌ 踢出失败: ${result.error}`, 'error');
+            showToast(`踢出失败: ${result.error}`, 'error');
         }
     } catch (error) {
         console.error('自动踢出错误:', error);
@@ -1890,13 +1901,13 @@ async function autoRemoveMember() {
         if (error.message.includes('Failed to fetch')) {
             errorMessage = '无法连接本地 API 服务，请确保服务已启动';
         }
-        statusDiv.textContent = `❌ ${errorMessage}`;
+        statusDiv.textContent = `${errorMessage}`;
         statusDiv.style.color = '#ef4444';
-        showToast(`❌ 连接失败: ${errorMessage}`, 'error');
+        showToast(`连接失败: ${errorMessage}`, 'error');
     } finally {
         if (autoRemoveBtn) {
             autoRemoveBtn.disabled = false;
-            autoRemoveBtn.textContent = '自动踢出';
+            autoRemoveBtn.textContent = '踢出';
         }
     }
 }
@@ -2155,6 +2166,6 @@ function closeNotificationModal() {
 function markAllNotificationsRead() {
     // 清除角标显示
     updateNotificationBadge(0);
-    showToast('✓ 已全部标记为已读', 'success');
+    showToast('已全部标记为已读', 'success');
     closeNotificationModal();
 }

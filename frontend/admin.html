@@ -5,6 +5,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>管理员后台 - Gemini账号管理</title>
+    <!-- 本地字体 -->
+    <link rel="stylesheet" href="fonts/fonts.css">
     <link rel="stylesheet" href="styles.css">
     <style>
         .admin-container {
@@ -600,13 +602,13 @@
                 const data = await response.json();
 
                 if (data.success) {
-                    console.log('✅ ' + data.message);
+                    console.log('' + data.message);
                     loadUsers(); // 重新加载列表
                 } else {
-                    console.error('❌ 删除失败:', data.error);
+                    console.error('删除失败:', data.error);
                 }
             } catch (error) {
-                console.error('❌ 网络错误:', error.message);
+                console.error('网络错误:', error.message);
             }
         }
 

@@ -1,0 +1,68 @@
+/* 自定义确认对话框样式 */
+.custom-confirm-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.7);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10000;
+}
+
+.custom-confirm-dialog {
+    background: var(--bg-primary);
+    border-radius: var(--radius-lg);
+    padding: var(--spacing-xl);
+    max-width: 400px;
+    width: 90%;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+}
+
+.custom-confirm-title {
+    font-size: 1.25rem;
+    font-weight: 600;
+    margin-bottom: var(--spacing-md);
+    color: #ef4444;
+}
+
+.custom-confirm-message {
+    color: var(--text-secondary);
+    margin-bottom: var(--spacing-xl);
+    line-height: 1.6;
+}
+
+.custom-confirm-buttons {
+    display: flex;
+    gap: var(--spacing-md);
+    justify-content: flex-end;
+}
+
+.custom-confirm-btn {
+    padding: var(--spacing-sm) var(--spacing-lg);
+    border-radius: var(--radius-md);
+    font-weight: 500;
+    cursor: pointer;
+    border: none;
+    transition: var(--transition);
+}
+
+.custom-confirm-btn-cancel {
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+}
+
+.custom-confirm-btn-cancel:hover {
+    background: var(--border);
+}
+
+.custom-confirm-btn-confirm {
+    background: #ef4444;
+    color: white;
+}
+
+.custom-confirm-btn-confirm:hover {
+    background: #dc2626;
+}

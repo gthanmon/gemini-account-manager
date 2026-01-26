@@ -6,10 +6,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>账号管理</title>
     <meta name="description" content="专业的账号管理系统,支持个人号和家庭组管理">
-    <!-- Google Fonts: Inter (英文) + Noto Sans SC (中文) -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+SC:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- 本地字体 -->
+    <link rel="stylesheet" href="fonts/fonts.css">
     <link rel="stylesheet" href="styles.css">
 </head>
 
@@ -266,15 +264,12 @@
                 </div>
             </div>
             <div class="modal-footer">
-                <button class="btn btn-secondary" id="slot-edit-btn" onclick="enableSlotEdit()" style="display: none;">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/></svg>
-                    编辑
-                </button>
-                <button class="btn" id="auto-invite-btn" onclick="autoSendInvite()" style="background: var(--gradient-accent); color: white;">自动发送邀请</button>
-                <button class="btn" id="auto-remove-btn" onclick="autoRemoveMember()" style="display: none; background: linear-gradient(135deg, #f59e0b, #ef4444); color: white;">自动踢出</button>
-                <button class="btn" id="slot-renew-btn" onclick="openRenewInput()" style="display: none; background: var(--gradient-accent); color: white;">续费</button>
-                <button class="btn btn-primary" id="slot-confirm-btn" onclick="confirmSlotAction()">确认</button>
-                <button class="btn btn-danger" id="slot-release-btn" style="display: none;" onclick="confirmRelease()">下车</button>
+                <button class="btn btn-secondary" id="slot-edit-btn" onclick="enableSlotEdit()" style="display: none;">编辑</button>
+                <button class="btn" id="auto-invite-btn" onclick="autoSendInvite()" style="background: var(--gradient-accent); color: white;">发送邀请</button>
+                <button class="btn" id="slot-renew-btn" onclick="openRenewInput()" style="display: none; background: var(--gradient-primary); color: white;">续费</button>
+                <button class="btn" id="auto-remove-btn" onclick="autoRemoveMember()" style="display: none; background: var(--gradient-gold); color: white;">踢出</button>
+                <button class="btn" id="slot-confirm-btn" onclick="confirmSlotAction()" style="background: var(--gradient-secondary); color: white;">确认上车</button>
+                <button class="btn" id="slot-release-btn" style="display: none; background: linear-gradient(135deg, #dc2626, #b91c1c); color: white;" onclick="confirmRelease()">下车</button>
             </div>
         </div>
     </div>

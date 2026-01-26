@@ -1,0 +1,37 @@
+/* 本地字体配置 - Inter (英文) + 系统中文字体 */
+
+/* Inter Regular */
+@font-face {
+    font-family: 'Inter';
+    font-style: normal;
+    font-weight: 400;
+    font-display: swap;
+    src: url('./Inter-Regular.woff2') format('woff2');
+}
+
+/* Inter Medium */
+@font-face {
+    font-family: 'Inter';
+    font-style: normal;
+    font-weight: 500;
+    font-display: swap;
+    src: url('./Inter-Medium.woff2') format('woff2');
+}
+
+/* Inter SemiBold */
+@font-face {
+    font-family: 'Inter';
+    font-style: normal;
+    font-weight: 600;
+    font-display: swap;
+    src: url('./Inter-SemiBold.woff2') format('woff2');
+}
+
+/* Inter Bold */
+@font-face {
+    font-family: 'Inter';
+    font-style: normal;
+    font-weight: 700;
+    font-display: swap;
+    src: url('./Inter-Bold.woff2') format('woff2');
+}
